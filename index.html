@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/png" href="/favicon.svg">
+  <title>TGBB</title>
+</head>
+<body>
+  <!-- Верхняя панель -->
+  <header class="app-header">
+    <div class="logo">
+      <div class="logo-icon">
+        <svg class="icon" viewBox="0 0 24 24">
+          <path d="M9.78 18.65l.28-4.23 7.68-6.92c.34-.31-.07-.46-.52-.19L7.74 13.3 3.64 12c-.88-.25-.89-.86.2-1.3l15.97-6.16c.73-.33 1.43.18 1.15 1.3l-2.72 12.81c-.19.91-.74 1.13-1.5.71L12.6 16.3l-1.99 1.93c-.23.23-.42.42-.83.42z"></path>
+        </svg>
+      </div>
+      <span class="logo-text">TG Bot Builder</span>
+    </div>
+    <div class="breadcrumb">
+      <a href="#">Builder</a>
+      <span class="separator">/</span>
+      <span class="title">Customer Assistant</span>
+    </div>
+    <div class="actions">
+      <button class="btn btn-secondary" id="btn-save">
+        <svg class="icon" style="margin-right: 8px;" viewBox="0 0 24 24">
+          <path d="M17 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V7l-4-4zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm3-10H5V5h10v4z"></path>
+        </svg>
+        Сохранить
+      </button>
+      <button class="btn btn-primary" id="btn-publish">
+        <svg class="icon" style="margin-right: 8px;" viewBox="0 0 24 24">
+          <path d="M5 4v2h14V4H5zm0 10h4v6h6v-6h4l-7-7-7 7z"></path>
+        </svg>
+        Опубликовать
+      </button>
+    </div>
+  </header>
+  
+  <!-- Основной контейнер приложения -->
+  <div class="app-container">
+    <!-- Левая боковая панель -->
+    <div class="sidebar">
+      <div class="sidebar-header">
+        <h3 style="font-size: 14px; font-weight: 600;">Компоненты</h3>
+        <button class="btn-icon sidebar-collapse-btn" aria-label="Свернуть панель" data-tooltip="Свернуть панель">
+          <svg class="icon" viewBox="0 0 24 24">
+            <path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"></path>
+          </svg>
+        </button>
+      </div>
+      
+      <div class="sidebar-search">
+        <svg class="search-icon" viewBox="0 0 24 24">
+          <path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0016 9.5 6.5 6.5 0 109.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"></path>
+        </svg>
+        <input type="text" placeholder="Поиск компонентов">
+      </div>
+      
+      <div class="sidebar-content">
+        <!-- Секция основных элементов -->
+        <div class="sidebar-section">
+          <div class="sidebar-section-header">
+            <span>Основные элементы</span>
+            <svg class="icon" viewBox="0 0 24 24">
+              <path d="M7 10l5 5 5-5z"></path>
+            </svg>
+          </div>
+          <div class="sidebar-section-content">
+            <div class="sidebar-item" data-node-type="start" draggable="true" data-tooltip="Начальная точка потока">
+              <div class="sidebar-item-icon primary">
+                <svg class="icon" viewBox="0 0 24 24">
+                  <path d="M8 5v14l11-7z"></path>
+                </svg>
+              </div>
+              <span class="sidebar-item-label">Начало</span>
+            </div>
+            <div class="sidebar-item" data-node-type="message" draggable="true" data-tooltip="Отправка сообщения пользователю">
+              <div class="sidebar-item-icon success">
+                <svg class="icon" viewBox="0 0 24 24">
+                  <path d="M20 2H4c-1.1 0-1.99.9-1.99 2L2 22l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-2 12H6v-2h12v2zm0-3H6V9h12v2zm0-3H6V6h12v2z"></path>
+                </svg>
+              </div>
+              <span class="sidebar-item-label">Сообщение</span>
+            </div>
+            <div class="sidebar-item" data-node-type="input" draggable="true" data-tooltip="Получение ввода от пользователя">
+              <div class="sidebar-item-icon warning">
+                <svg class="icon" viewBox="0 0 24 24">
+                  <path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"></path>
+                </svg>
+              </div>
+              <span class="sidebar-item-label">Ввод данных</span>
+            </div>
+            <div class="sidebar-item" data-node-type="logic" draggable="true" data-tooltip="Условная логика">
+              <div class="sidebar-item-icon danger">
+                <svg class="icon" viewBox="0 0 24 24">
+                  <path d="M9.4 16.6L4.8 12l4.6-4.6L8 6l-6 6 6 6 1.4-1.4zm5.2 0l4.6-4.6-4.6-4.6L16 6l6 6-6 6-1.4-1.4z"></path>
+                </svg>
+              </div>
+              <span class="sidebar-item-label">Условие</span>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Секция действий -->
+        <div class="sidebar-section">
+          <div class="sidebar-section-header">
+            <span>Действия и интеграции</span>
+            <svg class="icon" viewBox="0 0 24 24">
+              <path d="M7 10l5 5 5-5z"></path>
+            </svg>
+          </div>
+          <div class="sidebar-section-content">
+            <div class="sidebar-item" data-node-type="api" draggable="true" data-tooltip="Запрос к внешнему API">
+              <div class="sidebar-item-icon primary">
+                <svg class="icon" viewBox="0 0 24 24">
+                  <path d="M14 12l-2 2-2-2 2-2 2 2zm-2-6l2.12 2.12 2.5-2.5L12 1 7.38 5.62l2.5 2.5L12 6zm-6 6l2.12-2.12-2.5-2.5L1 12l4.62 4.62 2.5-2.5L6 12zm12 0l-2.12 2.12 2.5 2.5L23 12l-4.62-4.62-2.5 2.5L18 12zm-6 6l-2.12-2.12-2.5 2.5L12 23l4.62-4.62-2.5-2.5L12 18z"></path>
+                </svg>
+              </div>
+              <span class="sidebar-item-label">API запрос</span>
+            </div>
+            <div class="sidebar-item" data-node-type="payment" draggable="true" data-tooltip="Обработка платежей">
+              <div class="sidebar-item-icon success">
+                <svg class="icon" viewBox="0 0 24 24">
+                  <path d="M20 4H4c-1.11 0-1.99.89-1.99 2L2 18c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V6c0-1.11-.89-2-2-2zm0 14H4v-6h16v6zm0-10H4V6h16v2z"></path>
+                </svg>
+              </div>
+              <span class="sidebar-item-label">Платеж</span>
+            </div>
+            <div class="sidebar-item" data-node-type="database" draggable="true" data-tooltip="Работа с базой данных">
+              <div class="sidebar-item-icon warning">
+                <svg class="icon" viewBox="0 0 24 24">
+                  <path d="M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z"></path>
+                </svg>
+              </div>
+              <span class="sidebar-item-label">База данных</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Рабочая область -->
+    <div class="canvas-container">
+      <div class="canvas" id="canvas">
+        <!-- Пример соединения (SVG) -->
+        <svg class="connection" style="position: absolute; left: 280px; top: 160px; width: 150px; height: 100px;">
+          <path d="M 10 10 C 10 50, 140 50, 140 90" stroke-width="2"></path>
+          <path d="M 136 82 L 140 90 L 132 86" class="connection-arrow"></path>
+        </svg>
+        
+        <!-- Пример узла -->
+        <div class="node" style="left: 100px; top: 100px;">
+          <div class="node-header">
+            <div class="title">
+              <div class="indicator start"></div>
+              <span>Начало диалога</span>
+            </div>
+            <div class="actions">
+              <button class="btn-icon" aria-label="Дублировать" data-tooltip="Дублировать">
+                <svg class="icon" style="width: 16px; height: 16px;" viewBox="0 0 24 24">
+                  <path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"></path>
+                </svg>
+              </button>
+              <button class="btn-icon" aria-label="Удалить" data-tooltip="Удалить">
+                <svg class="icon" style="width: 16px; height: 16px;" viewBox="0 0 24 24">
+                  <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"></path>
+                </svg>
+              </button>
+            </div>
+          </div>
+          <div class="node-content">
+            <div class="node-element">
+              <div class="node-element-header">
+                <span>Текст</span>
+                <button class="btn-icon" aria-label="Удалить элемент" data-tooltip="Удалить элемент" style="width: 20px; height: 20px;">
+                  <svg class="icon" style="width: 14px; height: 14px;" viewBox="0 0 24 24">
+                    <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"></path>
+                  </svg>
+                </button>
+              </div>
+              <div class="node-element-content">
+                Привет! Я бот-помощник. Как я могу вам помочь?
+              </div>
+            </div>
+            <div class="node-add-element">
+              <button>+ Добавить элемент</button>
+            </div>
+          </div>
+          <div class="node-port node-port-out"></div>
+        </div>
+        
+        <!-- Пример узла сообщения -->
+        <div class="node" style="left: 400px; top: 220px;">
+          <div class="node-header">
+            <div class="title">
+              <div class="indicator message"></div>
+              <span>Приветственное сообщение</span>
+            </div>
+            <div class="actions">
+              <button class="btn-icon" aria-label="Дублировать" data-tooltip="Дублировать">
+                <svg class="icon" style="width: 16px; height: 16px;" viewBox="0 0 24 24">
+                  <path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"></path>
+                </svg>
+              </button>
+              <button class="btn-icon" aria-label="Удалить" data-tooltip="Удалить">
+                <svg class="icon" style="width: 16px; height: 16px;" viewBox="0 0 24 24">
+                  <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"></path>
+                </svg>
+              </button>
+            </div>
+          </div>
+          <div class="node-content">
+            <div class="node-element">
+              <div class="node-element-header">
+                <span>Текст</span>
+                <button class="btn-icon" aria-label="Удалить элемент" data-tooltip="Удалить элемент" style="width: 20px; height: 20px;">
+                  <svg class="icon" style="width: 14px; height: 14px;" viewBox="0 0 24 24">
+                    <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"></path>
+                  </svg>
+                </button>
+              </div>
+              <div class="node-element-content">
+                Что вас интересует?
+              </div>
+            </div>
+            <div class="node-element">
+              <div class="node-element-header">
+                <span>Изображение</span>
+                <button class="btn-icon" aria-label="Удалить элемент" data-tooltip="Удалить элемент" style="width: 20px; height: 20px;">
+                  <svg class="icon" style="width: 14px; height: 14px;" viewBox="0 0 24 24">
+                    <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"></path>
+                  </svg>
+                </button>
+              </div>
+              <div class="node-element-content">
+                Демонстрационное изображение
+              </div>
+            </div>
+            <div class="node-add-element">
+              <button>+ Добавить элемент</button>
+            </div>
+          </div>
+          <div class="node-port node-port-in"></div>
+          <div class="node-port node-port-out"></div>
+        </div>
+      </div>
+      
+      <!-- Навигационные контролы -->
+      <div class="navigation-controls">
+        <div class="nav-control-group">
+          <button class="btn-icon" aria-label="Увеличить" data-tooltip="Увеличить (Ctrl++)">
+            <svg class="icon" viewBox="0 0 24 24">
+              <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"></path>
+            </svg>
+          </button>
+          <button class="btn-icon" aria-label="Уменьшить" data-tooltip="Уменьшить (Ctrl+-)">
+            <svg class="icon" viewBox="0 0 24 24">
+              <path d="M19 13H5v-2h14v2z"></path>
+            </svg>
+          </button>
+          <button class="btn-icon" aria-label="По размеру экрана" data-tooltip="По размеру экрана (Ctrl+0)">
+            <svg class="icon" viewBox="0 0 24 24">
+              <path d="M15 3l2.3 2.3-2.89 2.87 1.42 1.42L18.7 6.7 21 9V3h-6zM3 9l2.3-2.3 2.87 2.89 1.42-1.42L6.7 5.3 9 3H3v6zm6 12l-2.3-2.3 2.89-2.87-1.42-1.42L5.3 17.3 3 15v6h6zm12-6l-2.3 2.3-2.87-2.89-1.42 1.42 2.89 2.87L15 21h6v-6z"></path>
+            </svg>
+          </button>
+        </div>
+        <div class="nav-control-group">
+          <button class="btn-icon" aria-label="Отменить" data-tooltip="Отменить (Ctrl+Z)">
+            <svg class="icon" viewBox="0 0 24 24">
+              <path d="M12.5 8c-2.65 0-5.05.99-6.9 2.6L2 7v9h9l-3.62-3.62c1.39-1.16 3.16-1.88 5.12-1.88 3.54 0 6.55 2.31 7.6 5.5l2.37-.78C21.08 11.03 17.15 8 12.5 8z"></path>
+            </svg>
+          </button>
+          <button class="btn-icon" aria-label="Повторить" data-tooltip="Повторить (Ctrl+Shift+Z)">
+            <svg class="icon" viewBox="0 0 24 24">
+              <path d="M18.4 10.6C16.55 8.99 14.15 8 11.5 8c-4.65 0-8.58 3.03-9.96 7.22L3.9 16a8.002 8.002 0 017.6-5.5c1.95 0 3.73.72 5.12 1.88L13 16h9V7l-3.6 3.6z"></path>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Панель свойств -->
+    <div class="properties-panel visible" id="properties-panel">
+      <div class="properties-panel-header">
+        <div class="properties-title">
+          <div class="properties-icon">
+            <svg class="icon" viewBox="0 0 24 24" style="color: var(--accent-primary);">
+              <path d="M8 5v14l11-7z"></path>
+            </svg>
+          </div>
+          <span>Начало диалога</span>
+        </div>
+        <button class="btn-icon" id="close-properties" aria-label="Закрыть панель свойств">
+          <svg class="icon" viewBox="0 0 24 24">
+            <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"></path>
+          </svg>
+        </button>
+      </div>
+      
+      <div class="properties-panel-body">
+        <div class="properties-preview">
+          <div style="text-align: center; color: var(--text-secondary);">
+            <svg class="icon" viewBox="0 0 24 24" style="width: 36px; height: 36px; margin-bottom: 12px; color: var(--accent-primary);">
+              <path d="M8 5v14l11-7z"></path>
+            </svg>
+            <div>Начальный узел потока</div>
+          </div>
+        </div>
+        
+        <div class="properties-form">
+          <div class="properties-section">
+            <h3 class="properties-section-title">Общие настройки</h3>
+            <div class="form-group">
+              <label for="node-name">Название</label>
+              <input type="text" id="node-name" class="form-control" value="Начало диалога">
+            </div>
+            <div class="form-group">
+              <label for="node-description">Описание</label>
+              <textarea id="node-description" class="form-control" placeholder="Описание компонента...">Начальная точка диалога. Отсюда начинается взаимодействие бота с пользователем.</textarea>
+            </div>
+          </div>
+          
+          <div class="properties-section">
+            <h3 class="properties-section-title">Контент</h3>
+            <div class="form-group">
+              <label for="element-text">Текст сообщения</label>
+              <textarea id="element-text" class="form-control">Привет! Я бот-помощник. Как я могу вам помочь?</textarea>
+            </div>
+            <div class="form-group d-flex justify-content-between">
+              <label>Форматирование</label>
+              <div>
+                <button class="btn-icon" aria-label="Жирный" data-tooltip="Жирный текст">
+                  <svg class="icon" style="width: 16px; height: 16px;" viewBox="0 0 24 24">
+                    <path d="M15.6 10.79c.97-.67 1.65-1.77 1.65-2.79 0-2.26-1.75-4-4-4H7v14h7.04c2.09 0 3.71-1.7 3.71-3.79 0-1.52-.86-2.82-2.15-3.42zM10 6.5h3c.83 0 1.5.67 1.5 1.5s-.67 1.5-1.5 1.5h-3v-3zm3.5 9H10v-3h3.5c.83 0 1.5.67 1.5 1.5s-.67 1.5-1.5 1.5z"></path>
+                  </svg>
+                </button>
+                <button class="btn-icon" aria-label="Курсив" data-tooltip="Курсив">
+                  <svg class="icon" style="width: 16px; height: 16px;" viewBox="0 0 24 24">
+                    <path d="M10 4v3h2.21l-3.42 8H6v3h8v-3h-2.21l3.42-8H18V4z"></path>
+                  </svg>
+                </button>
+                <button class="btn-icon" aria-label="Ссылка" data-tooltip="Вставить ссылку">
+                  <svg class="icon" style="width: 16px; height: 16px;" viewBox="0 0 24 24">
+                    <path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"></path>
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="properties-panel-footer">
+        <button class="btn btn-secondary" id="duplicate-element">Дублировать</button>
+        <button class="btn btn-danger" id="delete-element">Удалить</button>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Тултип (пример) -->
+  <div class="tooltip" style="left: 500px; top: 100px; display: none;">
+    Перетащите элемент на холст, чтобы создать новый узел
+  </div>
+  
+  <!-- Контекстное меню (пример) -->
+  <div class="context-menu" style="left: 300px; top: 200px; display: none;">
+    <div class="context-menu-item">
+      <svg class="icon" viewBox="0 0 24 24">
+        <path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"></path>
+      </svg>
+      Дублировать
+    </div>
+    <div class="context-menu-item">
+      <svg class="icon" viewBox="0 0 24 24">
+        <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"></path>
+      </svg>
+      Переименовать
+    </div>
+    <div class="context-menu-divider"></div>
+    <div class="context-menu-item">
+      <svg class="icon" viewBox="0 0 24 24">
+        <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"></path>
+      </svg>
+      Удалить
+    </div>
+  </div>
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>
