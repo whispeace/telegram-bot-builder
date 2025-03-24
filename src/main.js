@@ -1144,6 +1144,9 @@ class DiagramController {
   updateCanvasTransform() {
     const canvas = document.getElementById('canvas');
     canvas.style.transform = `translate(${-this.canvasState.position.x * this.canvasState.scale}px, ${-this.canvasState.position.y * this.canvasState.scale}px) scale(${this.canvasState.scale})`;
+
+    // Обновляем рендеринг после изменения трансформации
+    this.view.render();
   }
   
   /**
@@ -1927,31 +1930,107 @@ class DiagramView {
   }
   
   /**
-   * Рендеринг всей диаграммы
+   * Получение видимой области с учетом масштаба и позиции холста
+   */
+  getVisibleRect() {
+    const container = document.querySelector('.canvas-container');
+    const rect = container.getBoundingClientRect();
+    const position = this.controller.canvasState.position;
+    const scale = this.controller.canvasState.scale;
+
+    return {
+      left: position.x,
+      top: position.y,
+      right: position.x + rect.width / scale,
+      bottom: position.y + rect.height / scale
+    };
+  }
+
+  /**
+   * Проверка, находится ли узел в видимой области
+   */
+  isNodeInVisibleRect(node, visibleRect) {
+    if (!node) return false;
+
+    const padding = 100; // Отступ для плавной загрузки
+    const nodeWidth = CONSTANTS.NODE.DEFAULT_WIDTH;
+    const nodeHeight = CONSTANTS.NODE.DEFAULT_HEIGHT;
+
+    const nodeRight = node.position.x + nodeWidth;
+    const nodeBottom = node.position.y + nodeHeight;
+
+    return !(nodeRight < visibleRect.left - padding ||
+             node.position.x > visibleRect.right + padding ||
+             nodeBottom < visibleRect.top - padding ||
+             node.position.y > visibleRect.bottom + padding);
+  }
+
+  /**
+   * Модифицированный метод рендеринга с виртуализацией
    */
   render() {
-    // Очищаем холст
-    this.canvas.innerHTML = '';
-    
-    // Отрисовываем соединения
-    this.model.connections.forEach(connection => {
-      this.renderConnection(connection);
-    });
-    
-    // Отрисовываем узлы
+    this.cleanupOffscreenElements();
+
+    const visibleRect = this.getVisibleRect();
+
+    // Рендерим только видимые узлы
     this.model.nodes.forEach(node => {
-      this.renderNode(node);
+      if (this.isNodeInVisibleRect(node, visibleRect)) {
+        this.renderNode(node);
+      }
     });
-    
-    // Отрисовываем временное соединение, если есть
-    if (this.model.pendingConnection && 
-        this.model.pendingConnection.sourcePosition && 
-        this.model.pendingConnection.targetPosition) {
+
+    // Рендерим только соединения между видимыми узлами
+    this.model.connections.forEach(connection => {
+      const sourceNode = this.model.getNodeById(connection.source);
+      const targetNode = this.model.getNodeById(connection.target);
+
+      if ((sourceNode && this.isNodeInVisibleRect(sourceNode, visibleRect)) ||
+          (targetNode && this.isNodeInVisibleRect(targetNode, visibleRect))) {
+        this.renderConnection(connection);
+      }
+    });
+
+    // Рендерим временное соединение, если есть
+    if (this.model.pendingConnection) {
       this.renderPendingConnection(
         this.model.pendingConnection.sourcePosition,
         this.model.pendingConnection.targetPosition
       );
     }
+  }
+
+  /**
+   * Удаление невидимых элементов из DOM
+   */
+  cleanupOffscreenElements() {
+    const visibleRect = this.getVisibleRect();
+
+    // Удаляем невидимые узлы
+    document.querySelectorAll('.node').forEach(nodeElement => {
+      const nodeId = nodeElement.id;
+      const node = this.model.getNodeById(nodeId);
+
+      if (node && !this.isNodeInVisibleRect(node, visibleRect)) {
+        nodeElement.remove();
+      }
+    });
+
+    // Удаляем невидимые соединения
+    document.querySelectorAll('.connection').forEach(connectionElement => {
+      const connectionId = connectionElement.id;
+      const connection = this.model.getConnectionById(connectionId);
+
+      if (connection) {
+        const sourceNode = this.model.getNodeById(connection.source);
+        const targetNode = this.model.getNodeById(connection.target);
+
+        if ((!sourceNode || !this.isNodeInVisibleRect(sourceNode, visibleRect)) &&
+            (!targetNode || !this.isNodeInVisibleRect(targetNode, visibleRect))) {
+          connectionElement.remove();
+        }
+      }
+    });
   }
   
   /**
@@ -2606,7 +2685,7 @@ class DiagramView {
         iconPath = '<svg class="icon" viewBox="0 0 24 24" style="color: var(--accent-primary);"><path d="M8 5v14l11-7z"></path></svg>';
         break;
       case CONSTANTS.NODE.TYPES.MESSAGE:
-        iconPath = '<svg class="icon" viewBox="0 0 24 24" style="color: var(--accent-success);"><path d="M20 2H4c-1.1 0-1.99.9-1.99 2L2 22l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-2 12H6v-2h12v2zm0-3H6V9h12v2zm0-3H6V6h12v2z"></path></svg>';
+        iconPath = '<svg class="icon" viewBox="0 0 24 24" style="color: var(--accent-success);"><path d="M20 2H4c-1.1 0-1.99.9-1.99 2L2 22л4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-2 12H6v-2h12v2zm0-3H6V9h12v2zm0-3H6V6h12v2z"></path></svg>';
         break;
       case CONSTANTS.NODE.TYPES.INPUT:
         iconPath = '<svg class="icon" viewBox="0 0 24 24" style="color: var(--accent-warning);"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"></path></svg>';
@@ -2615,7 +2694,7 @@ class DiagramView {
         iconPath = '<svg class="icon" viewBox="0 0 24 24" style="color: var(--accent-danger);"><path d="M9.4 16.6L4.8 12l4.6-4.6L8 6l-6 6 6 6 1.4-1.4zm5.2 0l4.6-4.6-4.6-4.6L16 6l6 6-6 6-1.4-1.4z"></path></svg>';
         break;
       case CONSTANTS.NODE.TYPES.API:
-        iconPath = '<svg class="icon" viewBox="0 0 24 24" style="color: var(--accent-primary);"><path d="M14 12l-2 2-2-2 2-2 2 2zm-2-6l2.12 2.12 2.5-2.5L12 1 7.38 5.62l2.5 2.5L12 6zm-6 6l2.12-2.12-2.5-2.5L1 12l4.62 4.62 2.5-2.5L6 12zm12 0l-2.12 2.12 2.5 2.5L23 12l-4.62-4.62-2.5 2.5L18 12zm-6 6l-2.12-2.12-2.5 2.5L12 23l4.62-4.62-2.5-2.5L12 18z"></path></svg>';
+        iconPath = '<svg class="icon" viewBox="0 0 24 24" style="color: var(--accent-primary);"><path d="M14 12l-2 2-2-2 2-2 2 2zm-2-6l2.12 2.12 2.5-2.5L12 1 7.38 5.62л2.5 2.5L12 6zm-6 6l2.12-2.12-2.5-2.5L1 12l4.62 4.62 2.5-2.5L6 12zm12 0l-2.12 2.12 2.5 2.5L23 12l-4.62-4.62-2.5 2.5L18 12zm-6 6l-2.12-2.12-2.5 2.5L12 23l4.62-4.62-2.5-2.5L12 18z"></path></svg>';
         break;
       case CONSTANTS.NODE.TYPES.PAYMENT:
         iconPath = '<svg class="icon" viewBox="0 0 24 24" style="color: var(--accent-success);"><path d="M20 4H4c-1.11 0-1.99.89-1.99 2L2 18c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V6c0-1.11-.89-2-2-2zm0 14H4v-6h16v6zm0-10H4V6h16v2z"></path></svg>';
@@ -2845,7 +2924,7 @@ class DiagramView {
         preview.innerHTML = `
           <div style="padding: 16px; background-color: var(--bg-tertiary); border-radius: var(--radius-medium); text-align: center;">
             <svg class="icon" viewBox="0 0 24 24" style="width: 48px; height: 48px; color: var(--text-secondary);">
-              <path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"></path>
+              <path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11л-4 4z"></path>
             </svg>
             <div style="margin-top: 8px; color: var(--text-secondary);">
               ${element.data.url ? element.data.url : 'Видео не задано'}
