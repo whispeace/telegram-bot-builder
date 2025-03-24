@@ -12,7 +12,7 @@ const CONSTANTS = {
     DEFAULT_POSITION: { x: 0, y: 0 },
     DEFAULT_SCALE: 1
   },
-  
+
   // Типы и параметры узлов
   NODE: {
     TYPES: {
@@ -45,7 +45,7 @@ const CONSTANTS = {
     DEFAULT_WIDTH: 220,
     DEFAULT_HEIGHT: 100
   },
-  
+
   // Типы и параметры элементов
   ELEMENT: {
     TYPES: {
@@ -63,7 +63,7 @@ const CONSTANTS = {
       choice: 'Выбор варианта'
     }
   },
-  
+
   // Параметры соединений
   CONNECTION: {
     LINE_COLOR: 'var(--accent-primary)',
@@ -81,15 +81,15 @@ class DiagramModel {
     this.nodes = [];
     this.connections = [];
     this.nextId = 1;
-    
+
     // Состояние выделения
     this.selectedNodeId = null;
     this.selectedElementId = null;
     this.selectedConnectionId = null;
-    
+
     // Временное соединение
     this.pendingConnection = null;
-    
+
     // Система событий
     this.eventListeners = {
       onNodeAdded: [],
@@ -103,13 +103,13 @@ class DiagramModel {
       onSelectionChanged: [],
       onStateChanged: []
     };
-    
+
     // История изменений (для undo/redo)
     this.history = [];
     this.historyIndex = -1;
     this.isRecordingHistory = true;
   }
-  
+
   /**
    * Подписка на события модели
    * @param {string} eventType - Тип события
@@ -122,7 +122,7 @@ class DiagramModel {
       console.warn(`Неизвестный тип события: ${eventType}`);
     }
   }
-  
+
   /**
    * Публикация события
    * @param {string} eventType - Тип события
@@ -133,7 +133,7 @@ class DiagramModel {
       this.eventListeners[eventType].forEach(callback => callback(data));
     }
   }
-  
+
   /**
    * Генерация уникального ID
    * @param {string} prefix - Префикс ID
@@ -142,18 +142,18 @@ class DiagramModel {
   generateId(prefix) {
     return `${prefix}_${this.nextId++}`;
   }
-  
+
   /**
    * Запись состояния в историю
    */
   recordHistory() {
     if (!this.isRecordingHistory) return;
-    
+
     // Удаляем старые состояния в истории после текущего индекса
     if (this.historyIndex < this.history.length - 1) {
       this.history = this.history.slice(0, this.historyIndex + 1);
     }
-    
+
     // Сохраняем текущее состояние
     const state = {
       nodes: JSON.parse(JSON.stringify(this.nodes)),
@@ -162,41 +162,41 @@ class DiagramModel {
       selectedElementId: this.selectedElementId,
       selectedConnectionId: this.selectedConnectionId
     };
-    
+
     this.history.push(state);
     this.historyIndex = this.history.length - 1;
-    
+
     // Ограничиваем размер истории
     if (this.history.length > 50) {
       this.history.shift();
       this.historyIndex--;
     }
   }
-  
+
   /**
    * Отмена последнего действия
    * @returns {boolean} - Успешность операции
    */
   undo() {
     if (this.historyIndex <= 0) return false;
-    
+
     this.historyIndex--;
     this.restoreState(this.history[this.historyIndex]);
     return true;
   }
-  
+
   /**
    * Повтор отмененного действия
    * @returns {boolean} - Успешность операции
    */
   redo() {
     if (this.historyIndex >= this.history.length - 1) return false;
-    
+
     this.historyIndex++;
     this.restoreState(this.history[this.historyIndex]);
     return true;
   }
-  
+
   /**
    * Восстановление состояния из истории
    * @param {Object} state - Состояние модели
@@ -204,23 +204,23 @@ class DiagramModel {
   restoreState(state) {
     // Временно отключаем запись истории
     this.isRecordingHistory = false;
-    
+
     // Восстанавливаем данные
     this.nodes = state.nodes;
     this.connections = state.connections;
-    
+
     // Восстанавливаем выделение
     this.selectedNodeId = state.selectedNodeId;
     this.selectedElementId = state.selectedElementId;
     this.selectedConnectionId = state.selectedConnectionId;
-    
+
     // Публикуем событие обновления состояния
     this.publish('onStateChanged', { type: 'historyRestore' });
-    
+
     // Включаем запись истории
     this.isRecordingHistory = true;
   }
-  
+
   /**
    * Добавление нового узла
    * @param {string} type - Тип узла
@@ -236,28 +236,28 @@ class DiagramModel {
       title: CONSTANTS.NODE.TYPE_NAMES[type] || 'Узел',
       elements: []
     };
-    
+
     // Добавляем элемент текста по умолчанию для новых узлов
     const elementId = this.generateId('element');
-    const defaultText = type === CONSTANTS.NODE.TYPES.START 
+    const defaultText = type === CONSTANTS.NODE.TYPES.START
       ? 'Привет! Я бот-помощник. Как я могу вам помочь?'
       : 'Новый текстовый элемент';
-      
+
     node.elements.push({
       id: elementId,
       type: CONSTANTS.ELEMENT.TYPES.TEXT,
       data: { text: defaultText }
     });
-    
+
     this.nodes.push(node);
-    
+
     // Записываем в историю и публикуем событие
     this.recordHistory();
     this.publish('onNodeAdded', { nodeId, node });
-    
+
     return nodeId;
   }
-  
+
   /**
    * Обновление узла
    * @param {string} nodeId - ID узла
@@ -266,15 +266,15 @@ class DiagramModel {
   updateNode(nodeId, data) {
     const node = this.getNodeById(nodeId);
     if (!node) return;
-    
+
     // Обновляем данные узла
     Object.assign(node, data);
-    
+
     // Записываем в историю и публикуем событие
     this.recordHistory();
     this.publish('onNodeUpdated', { nodeId, node });
   }
-  
+
   /**
    * Удаление узла
    * @param {string} nodeId - ID узла
@@ -282,29 +282,29 @@ class DiagramModel {
   removeNode(nodeId) {
     const nodeIndex = this.nodes.findIndex(node => node.id === nodeId);
     if (nodeIndex === -1) return;
-    
+
     // Удаляем узел
     this.nodes.splice(nodeIndex, 1);
-    
+
     // Удаляем все связанные с узлом соединения
     const relatedConnections = this.connections.filter(
       conn => conn.source === nodeId || conn.target === nodeId
     );
-    
+
     relatedConnections.forEach(conn => {
       this.removeConnection(conn.id);
     });
-    
+
     // Сбрасываем выделение, если был выделен этот узел
     if (this.selectedNodeId === nodeId) {
       this.setSelectedNode(null);
     }
-    
+
     // Записываем в историю и публикуем событие
     this.recordHistory();
     this.publish('onNodeRemoved', { nodeId });
   }
-  
+
   /**
    * Дублирование узла
    * @param {string} nodeId - ID узла
@@ -313,32 +313,32 @@ class DiagramModel {
   duplicateNode(nodeId) {
     const node = this.getNodeById(nodeId);
     if (!node) return null;
-    
+
     // Создаем новый узел с данными исходного
     const newNodeId = this.generateId('node');
     const newNode = JSON.parse(JSON.stringify(node));
-    
+
     // Изменяем ID и позицию
     newNode.id = newNodeId;
     newNode.position = {
       x: node.position.x + 20,
       y: node.position.y + 20
     };
-    
+
     // Генерируем новые ID для элементов
     newNode.elements.forEach(element => {
       element.id = this.generateId('element');
     });
-    
+
     this.nodes.push(newNode);
-    
+
     // Записываем в историю и публикуем событие
     this.recordHistory();
     this.publish('onNodeAdded', { nodeId: newNodeId, node: newNode });
-    
+
     return newNodeId;
   }
-  
+
   /**
    * Добавление элемента в узел
    * @param {string} nodeId - ID узла
@@ -348,14 +348,14 @@ class DiagramModel {
   addElement(nodeId, type) {
     const node = this.getNodeById(nodeId);
     if (!node) return null;
-    
+
     const elementId = this.generateId('element');
     const element = {
       id: elementId,
       type: type,
       data: {}
     };
-    
+
     // Инициализация данных элемента по умолчанию
     switch (type) {
       case CONSTANTS.ELEMENT.TYPES.TEXT:
@@ -378,16 +378,16 @@ class DiagramModel {
         element.data.options = ['Вариант 1', 'Вариант 2'];
         break;
     }
-    
+
     node.elements.push(element);
-    
+
     // Записываем в историю и публикуем событие
     this.recordHistory();
     this.publish('onElementAdded', { nodeId, elementId, element });
-    
+
     return elementId;
   }
-  
+
   /**
    * Обновление элемента узла
    * @param {string} nodeId - ID узла
@@ -397,18 +397,18 @@ class DiagramModel {
   updateElement(nodeId, elementId, data) {
     const node = this.getNodeById(nodeId);
     if (!node) return;
-    
+
     const element = node.elements.find(el => el.id === elementId);
     if (!element) return;
-    
+
     // Обновляем данные элемента
     element.data = { ...element.data, ...data };
-    
+
     // Записываем в историю и публикуем событие
     this.recordHistory();
     this.publish('onElementUpdated', { nodeId, elementId, element });
   }
-  
+
   /**
    * Удаление элемента из узла
    * @param {string} nodeId - ID узла
@@ -417,23 +417,23 @@ class DiagramModel {
   removeElement(nodeId, elementId) {
     const node = this.getNodeById(nodeId);
     if (!node) return;
-    
+
     const elementIndex = node.elements.findIndex(el => el.id === elementId);
     if (elementIndex === -1) return;
-    
+
     // Удаляем элемент
     node.elements.splice(elementIndex, 1);
-    
+
     // Сбрасываем выделение, если был выделен этот элемент
     if (this.selectedNodeId === nodeId && this.selectedElementId === elementId) {
       this.setSelectedElement(nodeId, null);
     }
-    
+
     // Записываем в историю и публикуем событие
     this.recordHistory();
     this.publish('onElementRemoved', { nodeId, elementId });
   }
-  
+
   /**
    * Добавление соединения между узлами
    * @param {string} sourceId - ID исходного узла
@@ -444,20 +444,20 @@ class DiagramModel {
     // Проверка на существование узлов
     const sourceNode = this.getNodeById(sourceId);
     const targetNode = this.getNodeById(targetId);
-    
+
     if (!sourceNode || !targetNode) {
       return null;
     }
-    
+
     // Проверка на дубликаты
     const existingConnection = this.connections.find(
       conn => conn.source === sourceId && conn.target === targetId
     );
-    
+
     if (existingConnection) {
       return existingConnection.id;
     }
-    
+
     // Создаем новое соединение
     const connectionId = this.generateId('conn');
     const connection = {
@@ -465,16 +465,16 @@ class DiagramModel {
       source: sourceId,
       target: targetId
     };
-    
+
     this.connections.push(connection);
-    
+
     // Записываем в историю и публикуем событие
     this.recordHistory();
     this.publish('onConnectionAdded', { connectionId, connection });
-    
+
     return connectionId;
   }
-  
+
   /**
    * Удаление соединения
    * @param {string} connectionId - ID соединения
@@ -482,20 +482,20 @@ class DiagramModel {
   removeConnection(connectionId) {
     const connectionIndex = this.connections.findIndex(conn => conn.id === connectionId);
     if (connectionIndex === -1) return;
-    
+
     // Удаляем соединение
     this.connections.splice(connectionIndex, 1);
-    
+
     // Сбрасываем выделение, если было выделено это соединение
     if (this.selectedConnectionId === connectionId) {
       this.setSelectedConnection(null);
     }
-    
+
     // Записываем в историю и публикуем событие
     this.recordHistory();
     this.publish('onConnectionRemoved', { connectionId });
   }
-  
+
   /**
    * Получение узла по ID
    * @param {string} nodeId - ID узла
@@ -504,7 +504,7 @@ class DiagramModel {
   getNodeById(nodeId) {
     return this.nodes.find(node => node.id === nodeId) || null;
   }
-  
+
   /**
    * Получение соединения по ID
    * @param {string} connectionId - ID соединения
@@ -513,7 +513,7 @@ class DiagramModel {
   getConnectionById(connectionId) {
     return this.connections.find(conn => conn.id === connectionId) || null;
   }
-  
+
   /**
    * Получение соединений, связанных с узлом
    * @param {string} nodeId - ID узла
@@ -524,7 +524,7 @@ class DiagramModel {
       conn => conn.source === nodeId || conn.target === nodeId
     );
   }
-  
+
   /**
    * Установка выделенного узла
    * @param {string|null} nodeId - ID узла или null
@@ -533,14 +533,14 @@ class DiagramModel {
     this.selectedNodeId = nodeId;
     this.selectedElementId = null;
     this.selectedConnectionId = null;
-    
+
     // Публикуем событие изменения выделения
-    this.publish('onSelectionChanged', { 
-      type: 'node', 
-      nodeId: this.selectedNodeId 
+    this.publish('onSelectionChanged', {
+      type: 'node',
+      nodeId: this.selectedNodeId
     });
   }
-  
+
   /**
    * Установка выделенного элемента
    * @param {string} nodeId - ID узла
@@ -550,15 +550,15 @@ class DiagramModel {
     this.selectedNodeId = nodeId;
     this.selectedElementId = elementId;
     this.selectedConnectionId = null;
-    
+
     // Публикуем событие изменения выделения
-    this.publish('onSelectionChanged', { 
-      type: 'element', 
-      nodeId: this.selectedNodeId, 
-      elementId: this.selectedElementId 
+    this.publish('onSelectionChanged', {
+      type: 'element',
+      nodeId: this.selectedNodeId,
+      elementId: this.selectedElementId
     });
   }
-  
+
   /**
    * Установка выделенного соединения
    * @param {string|null} connectionId - ID соединения или null
@@ -567,14 +567,14 @@ class DiagramModel {
     this.selectedNodeId = null;
     this.selectedElementId = null;
     this.selectedConnectionId = connectionId;
-    
+
     // Публикуем событие изменения выделения
-    this.publish('onSelectionChanged', { 
-      type: 'connection', 
-      connectionId: this.selectedConnectionId 
+    this.publish('onSelectionChanged', {
+      type: 'connection',
+      connectionId: this.selectedConnectionId
     });
   }
-  
+
   /**
    * Начало создания соединения
    * @param {string} nodeId - ID исходного узла
@@ -586,18 +586,18 @@ class DiagramModel {
       sourcePosition: position
     };
   }
-  
+
   /**
    * Обновление позиции временного соединения
    * @param {Object} position - Текущая позиция указателя
    */
   updatePendingConnection(position) {
     if (!this.pendingConnection) return;
-    
+
     this.pendingConnection.targetPosition = position;
     this.publish('onStateChanged', { type: 'pendingConnectionUpdated' });
   }
-  
+
   /**
    * Завершение создания соединения
    * @param {string} targetId - ID целевого узла
@@ -608,13 +608,13 @@ class DiagramModel {
       this.pendingConnection = null;
       return null;
     }
-    
+
     const connectionId = this.addConnection(this.pendingConnection.sourceId, targetId);
     this.pendingConnection = null;
-    
+
     return connectionId;
   }
-  
+
   /**
    * Отмена создания соединения
    */
@@ -622,7 +622,7 @@ class DiagramModel {
     this.pendingConnection = null;
     this.publish('onStateChanged', { type: 'pendingConnectionCancelled' });
   }
-  
+
   /**
    * Экспорт данных диаграммы
    * @returns {Object} - Данные диаграммы
@@ -633,50 +633,50 @@ class DiagramModel {
       connections: JSON.parse(JSON.stringify(this.connections))
     };
   }
-  
+
   /**
    * Импорт данных диаграммы
    * @param {Object} data - Импортируемые данные
    */
   importData(data) {
     if (!data) return;
-    
+
     // Очищаем текущие данные
     this.nodes = [];
     this.connections = [];
     this.selectedNodeId = null;
     this.selectedElementId = null;
     this.selectedConnectionId = null;
-    
+
     // Импортируем узлы и соединения
     if (data.nodes) this.nodes = data.nodes;
     if (data.connections) this.connections = data.connections;
-    
+
     // Обновляем nextId, чтобы избежать конфликтов
     let maxId = 0;
-    
+
     this.nodes.forEach(node => {
       const idNum = parseInt(node.id.split('_')[1]);
       if (idNum > maxId) maxId = idNum;
-      
+
       node.elements.forEach(element => {
         const elIdNum = parseInt(element.id.split('_')[1]);
         if (elIdNum > maxId) maxId = elIdNum;
       });
     });
-    
+
     this.connections.forEach(conn => {
       const connIdNum = parseInt(conn.id.split('_')[1]);
       if (connIdNum > maxId) maxId = connIdNum;
     });
-    
+
     this.nextId = maxId + 1;
-    
+
     // Очищаем историю и создаем новое начальное состояние
     this.history = [];
     this.historyIndex = -1;
     this.recordHistory();
-    
+
     // Публикуем событие импорта данных
     this.publish('onStateChanged', { type: 'dataImported' });
   }
@@ -689,7 +689,7 @@ class DiagramController {
   constructor(model) {
     this.model = model;
     this.view = null; // Будет установлен позднее
-    
+
     // Состояние холста
     this.canvasState = {
       position: { ...CONSTANTS.CANVAS.DEFAULT_POSITION },
@@ -698,7 +698,7 @@ class DiagramController {
       dragStartPos: { x: 0, y: 0 },
       dragStartClientPos: { x: 0, y: 0 }
     };
-    
+
     // Состояние перетаскивания узла
     this.nodeDragState = {
       isDragging: false,
@@ -706,23 +706,23 @@ class DiagramController {
       startPos: { x: 0, y: 0 },
       offset: { x: 0, y: 0 }
     };
-    
+
     // Обработчики событий мыши с привязкой контекста
     this.handleMouseDown = this.handleMouseDown.bind(this);
     this.handleMouseMove = this.handleMouseMove.bind(this);
     this.handleMouseUp = this.handleMouseUp.bind(this);
     this.handleWheel = this.handleWheel.bind(this);
     this.handleKeyDown = this.handleKeyDown.bind(this);
-    
+
     // Обработчики для drag-and-drop
     this.handleDragStart = this.handleDragStart.bind(this);
     this.handleDragOver = this.handleDragOver.bind(this);
     this.handleDrop = this.handleDrop.bind(this);
-    
+
     // Инициализация обработчиков событий
     this.init();
   }
-  
+
   /**
    * Установка объекта представления
    * @param {DiagramView} view - Объект представления
@@ -730,50 +730,50 @@ class DiagramController {
   setView(view) {
     this.view = view;
   }
-  
+
   /**
    * Инициализация контроллера
    */
   init() {
     // Инициализация обработчиков событий DOM
     this.initDOMEventListeners();
-    
+
     // Инициализация обработчиков для интерфейса
     this.initUIEventListeners();
   }
-  
+
   /**
    * Инициализация обработчиков событий DOM
    */
   initDOMEventListeners() {
     const canvas = document.getElementById('canvas');
-    
+
     // События мыши на холсте
     canvas.addEventListener('mousedown', this.handleMouseDown);
     canvas.addEventListener('mousemove', this.handleMouseMove);
     canvas.addEventListener('mouseup', this.handleMouseUp);
     canvas.addEventListener('wheel', this.handleWheel, { passive: false });
-    
+
     // Глобальные обработчики для завершения перетаскивания вне холста
     document.addEventListener('mousemove', this.handleMouseMove);
     document.addEventListener('mouseup', this.handleMouseUp);
-    
+
     // Обработка клавиатурных сокращений
     document.addEventListener('keydown', this.handleKeyDown);
-    
+
     // Отключение контекстного меню браузера
     canvas.addEventListener('contextmenu', e => e.preventDefault());
-    
+
     // Drag-and-drop из боковой панели
     const draggableItems = document.querySelectorAll('[draggable="true"]');
     draggableItems.forEach(item => {
       item.addEventListener('dragstart', this.handleDragStart);
     });
-    
+
     canvas.addEventListener('dragover', this.handleDragOver);
     canvas.addEventListener('drop', this.handleDrop);
   }
-  
+
   /**
    * Инициализация обработчиков для интерфейса
    */
@@ -783,46 +783,46 @@ class DiagramController {
     if (saveButton) {
       saveButton.addEventListener('click', this.saveProject.bind(this));
     }
-    
+
     // Кнопка публикации
     const publishButton = document.getElementById('btn-publish');
     if (publishButton) {
       publishButton.addEventListener('click', this.showPublishModal.bind(this));
     }
-    
+
     // Кнопки навигации
     const zoomInButton = document.querySelector('.navigation-controls [aria-label="Увеличить"]');
     const zoomOutButton = document.querySelector('.navigation-controls [aria-label="Уменьшить"]');
     const resetZoomButton = document.querySelector('.navigation-controls [aria-label="По размеру экрана"]');
     const undoButton = document.querySelector('.navigation-controls [aria-label="Отменить"]');
     const redoButton = document.querySelector('.navigation-controls [aria-label="Повторить"]');
-    
+
     if (zoomInButton) zoomInButton.addEventListener('click', this.zoomIn.bind(this));
     if (zoomOutButton) zoomOutButton.addEventListener('click', this.zoomOut.bind(this));
     if (resetZoomButton) resetZoomButton.addEventListener('click', this.resetZoom.bind(this));
     if (undoButton) undoButton.addEventListener('click', this.undo.bind(this));
     if (redoButton) redoButton.addEventListener('click', this.redo.bind(this));
-    
+
     // Кнопка свертывания боковой панели
     const sidebarCollapseButton = document.querySelector('.sidebar-collapse-btn');
     if (sidebarCollapseButton) {
       sidebarCollapseButton.addEventListener('click', this.toggleSidebar.bind(this));
     }
-    
+
     // Кнопка закрытия панели свойств
     const closePropertiesButton = document.getElementById('close-properties');
     if (closePropertiesButton) {
       closePropertiesButton.addEventListener('click', this.hidePropertiesPanel.bind(this));
     }
   }
-  
+
   /**
    * Обработчик нажатия кнопки мыши
    * @param {MouseEvent} e - Событие мыши
    */
   handleMouseDown(e) {
     const canvas = document.getElementById('canvas');
-    
+
     if (e.button === 2) {
       // Правая кнопка мыши - перетаскивание холста
       this.canvasState.isDragging = true;
@@ -830,34 +830,38 @@ class DiagramController {
       canvas.classList.add('dragging');
       document.body.style.cursor = 'grabbing';
       e.preventDefault();
-      
+
     } else if (e.target === canvas) {
       // Клик по пустой области холста - сброс выделения
       this.model.setSelectedNode(null);
       this.hidePropertiesPanel();
-      
+
     } else {
       // Проверка на клик по узлу или элементам узла
       const nodeElement = e.target.closest('.node');
       if (nodeElement) {
         const nodeId = nodeElement.id;
-        
+
         // Клик по заголовку - начало перетаскивания
         if (e.target.closest('.node-header')) {
-          this.startNodeDrag(e, nodeId);
+          // Проверяем, что это не клик по кнопке
+          const button = e.target.closest('button');
+          if (button) return;
           
-        // Клик по порту - начало создания соединения
+          this.startNodeDrag(e, nodeId);
+
+          // Клик по порту - начало создания соединения
         } else if (e.target.classList.contains('node-port')) {
           this.startConnectionCreation(e, nodeId);
-          
-        // Клик по элементу узла - выделение элемента
+
+          // Клик по элементу узла - выделение элемента
         } else if (e.target.closest('.node-element')) {
           const elementElement = e.target.closest('.node-element');
           const elementId = elementElement.dataset.elementId;
           this.model.setSelectedElement(nodeId, elementId);
           this.showPropertiesPanel();
-          
-        // Клик по узлу - выделение узла
+
+          // Клик по узлу - выделение узла
         } else {
           this.model.setSelectedNode(nodeId);
           this.showPropertiesPanel();
@@ -865,7 +869,7 @@ class DiagramController {
       }
     }
   }
-  
+
   /**
    * Начало перетаскивания узла
    * @param {MouseEvent} e - Событие мыши
@@ -874,30 +878,46 @@ class DiagramController {
   startNodeDrag(e, nodeId) {
     const node = this.model.getNodeById(nodeId);
     if (!node) return;
-    
+
     const nodeElement = document.getElementById(nodeId);
     const rect = nodeElement.getBoundingClientRect();
-    
-    // Вычисляем смещение курсора от левого верхнего угла узла
+    const canvas = document.getElementById('canvas');
+
+    // Создаем элемент-призрак для более наглядного перетаскивания
+    const ghostNode = nodeElement.cloneNode(true);
+    ghostNode.id = `${nodeId}-ghost`;
+    ghostNode.classList.add('node-ghost');
+    ghostNode.style.position = 'absolute';
+    ghostNode.style.left = `${node.position.x}px`;
+    ghostNode.style.top = `${node.position.y}px`;
+    ghostNode.style.zIndex = '1000';
+    ghostNode.style.pointerEvents = 'none';
+    ghostNode.style.opacity = '0.7';
+
+    // Добавляем призрак на холст
+    canvas.appendChild(ghostNode);
+
+    // Сохраняем состояние перетаскивания
     this.nodeDragState = {
       isDragging: true,
       nodeId: nodeId,
+      ghostId: `${nodeId}-ghost`,
       startPos: { ...node.position },
       offset: {
         x: (e.clientX - rect.left) / this.canvasState.scale,
         y: (e.clientY - rect.top) / this.canvasState.scale
       }
     };
-    
-    // Добавляем класс для визуального эффекта перетаскивания
+
+    // Добавляем класс для визуальной индикации перетаскивания
     nodeElement.classList.add('dragging');
     document.body.style.cursor = 'grabbing';
-    
+
     // Выделяем узел
     this.model.setSelectedNode(nodeId);
     this.showPropertiesPanel();
   }
-  
+
   /**
    * Начало создания соединения
    * @param {MouseEvent} e - Событие мыши
@@ -906,121 +926,133 @@ class DiagramController {
   startConnectionCreation(e, nodeId) {
     const node = this.model.getNodeById(nodeId);
     if (!node) return;
-    
+
     // Определяем порт (входной или выходной)
     const isOutputPort = e.target.classList.contains('node-port-out');
     const isInputPort = e.target.classList.contains('node-port-in');
-    
+
     // Начинаем создание соединения только из выходного порта
     if (isOutputPort) {
       const nodeElement = document.getElementById(nodeId);
       const portRect = e.target.getBoundingClientRect();
       const canvasRect = document.getElementById('canvas').getBoundingClientRect();
-      
+
       // Позиция порта в координатах холста
       const portPosition = {
         x: node.position.x + nodeElement.offsetWidth / 2,
         y: node.position.y + nodeElement.offsetHeight
       };
-      
+
       // Начинаем создание соединения
       this.model.startConnection(nodeId, portPosition);
-      
+
       // Добавляем класс для визуального выделения порта
       e.target.classList.add('active');
     }
   }
-  
+
   /**
    * Обработчик перемещения мыши
    * @param {MouseEvent} e - Событие мыши
    */
   handleMouseMove(e) {
     const canvas = document.getElementById('canvas');
-    
+
     // Перетаскивание холста (правая кнопка мыши)
     if (this.canvasState.isDragging) {
       const dx = e.clientX - this.canvasState.dragStartClientPos.x;
       const dy = e.clientY - this.canvasState.dragStartClientPos.y;
-      
+
       this.canvasState.position.x += dx / this.canvasState.scale;
       this.canvasState.position.y += dy / this.canvasState.scale;
-      
+
       this.canvasState.dragStartClientPos = { x: e.clientX, y: e.clientY };
-      
+
       this.updateCanvasTransform();
     }
-    
+
     // Перетаскивание узла
     else if (this.nodeDragState.isDragging) {
       const canvasRect = canvas.getBoundingClientRect();
-      
-      // Вычисляем новую позицию узла с учетом масштаба и смещения холста
-      const x = (e.clientX - canvasRect.left) / this.canvasState.scale - 
-                this.nodeDragState.offset.x + this.canvasState.position.x;
-      const y = (e.clientY - canvasRect.top) / this.canvasState.scale - 
-                this.nodeDragState.offset.y + this.canvasState.position.y;
-      
+
+      // Вычисляем новую позицию узла
+      let x = (e.clientX - canvasRect.left) / this.canvasState.scale -
+        this.nodeDragState.offset.x + this.canvasState.position.x;
+      let y = (e.clientY - canvasRect.top) / this.canvasState.scale -
+        this.nodeDragState.offset.y + this.canvasState.position.y;
+
       // Привязка к сетке при зажатом Shift
       if (e.shiftKey) {
         const gridSize = 20;
-        const snappedX = Math.round(x / gridSize) * gridSize;
-        const snappedY = Math.round(y / gridSize) * gridSize;
-        
-        this.updateNodePosition(this.nodeDragState.nodeId, { x: snappedX, y: snappedY });
-      } else {
-        this.updateNodePosition(this.nodeDragState.nodeId, { x, y });
+        x = Math.round(x / gridSize) * gridSize;
+        y = Math.round(y / gridSize) * gridSize;
+      }
+
+      // Обновляем только позицию призрака во время перетаскивания
+      const ghostNode = document.getElementById(this.nodeDragState.ghostId);
+      if (ghostNode) {
+        ghostNode.style.left = `${x}px`;
+        ghostNode.style.top = `${y}px`;
       }
     }
-    
     // Обновление временного соединения
     else if (this.model.pendingConnection) {
       const canvasRect = canvas.getBoundingClientRect();
-      
+
       // Позиция курсора в координатах холста
       const x = (e.clientX - canvasRect.left) / this.canvasState.scale + this.canvasState.position.x;
       const y = (e.clientY - canvasRect.top) / this.canvasState.scale + this.canvasState.position.y;
-      
+
       this.model.updatePendingConnection({ x, y });
     }
   }
-  
+
   /**
    * Обработчик отпускания кнопки мыши
    * @param {MouseEvent} e - Событие мыши
    */
   handleMouseUp(e) {
     const canvas = document.getElementById('canvas');
-    
+
     // Завершение перетаскивания холста
     if (this.canvasState.isDragging) {
       this.canvasState.isDragging = false;
       canvas.classList.remove('dragging');
       document.body.style.cursor = 'default';
     }
-    
+
     // Завершение перетаскивания узла
     else if (this.nodeDragState.isDragging) {
       const nodeElement = document.getElementById(this.nodeDragState.nodeId);
-      if (nodeElement) {
-        nodeElement.classList.remove('dragging');
+      const ghostNode = document.getElementById(this.nodeDragState.ghostId);
+
+      if (nodeElement && ghostNode) {
+        // Получаем итоговую позицию из элемента-призрака
+        const finalX = parseInt(ghostNode.style.left);
+        const finalY = parseInt(ghostNode.style.top);
+
+        // Удаляем призрак
+        console.log(ghostNode);
         
-        // Анимация "приземления" узла
-        nodeElement.style.transition = 'transform 0.15s ease-out';
-        nodeElement.style.transform = 'scale(1.02)';
-        
+        ghostNode.remove();
+
+        // Обновляем реальную позицию узла с анимацией
+        nodeElement.style.transition = 'transform 0.2s ease-out';
+        this.updateNodePosition(this.nodeDragState.nodeId, { x: finalX, y: finalY });
+
+        // Сбрасываем transition после анимации
         setTimeout(() => {
-          nodeElement.style.transform = 'scale(1)';
-          setTimeout(() => {
+          if (nodeElement) {
             nodeElement.style.transition = '';
-          }, 150);
-        }, 10);
+            nodeElement.classList.remove('dragging');
+          }
+        }, 200);
       }
-      
+
       this.nodeDragState.isDragging = false;
       document.body.style.cursor = 'default';
     }
-    
+
     // Завершение создания соединения
     else if (this.model.pendingConnection) {
       // Ищем узел под курсором
@@ -1029,7 +1061,7 @@ class DiagramController {
         const targetNodeElement = elementUnderCursor.closest('.node');
         if (targetNodeElement) {
           const targetNodeId = targetNodeElement.id;
-          
+
           // Завершаем создание соединения
           this.model.completePendingConnection(targetNodeId);
         } else {
@@ -1039,35 +1071,35 @@ class DiagramController {
       } else {
         this.model.cancelPendingConnection();
       }
-      
+
       // Удаляем класс активности у всех портов
       document.querySelectorAll('.node-port.active').forEach(port => {
         port.classList.remove('active');
       });
     }
   }
-  
+
   /**
    * Обработчик колесика мыши
    * @param {WheelEvent} e - Событие колесика
    */
   handleWheel(e) {
     e.preventDefault();
-    
+
     if (e.ctrlKey) {
       // Масштабирование при зажатом Ctrl
       const delta = e.deltaY > 0 ? -CONSTANTS.CANVAS.SCALE_STEP : CONSTANTS.CANVAS.SCALE_STEP;
       this.zoom(delta, e.clientX, e.clientY);
-      
+
     } else {
       // Панорамирование при прокрутке колесиком
       this.canvasState.position.x -= e.deltaX / this.canvasState.scale;
       this.canvasState.position.y -= e.deltaY / this.canvasState.scale;
-      
+
       this.updateCanvasTransform();
     }
   }
-  
+
   /**
    * Изменение масштаба
    * @param {number} delta - Изменение масштаба
@@ -1079,31 +1111,31 @@ class DiagramController {
       CONSTANTS.CANVAS.SCALE_MIN,
       Math.min(CONSTANTS.CANVAS.SCALE_MAX, this.canvasState.scale + delta)
     );
-    
+
     // Не делаем ничего, если масштаб не изменился
     if (newScale === this.canvasState.scale) return;
-    
+
     const canvas = document.getElementById('canvas');
     const rect = canvas.getBoundingClientRect();
-    
+
     // Координаты точки, относительно которой происходит масштабирование
     const mouseX = clientX - rect.left;
     const mouseY = clientY - rect.top;
-    
+
     // Позиция мыши в координатах холста до масштабирования
     const mouseCanvasX = mouseX / this.canvasState.scale + this.canvasState.position.x;
     const mouseCanvasY = mouseY / this.canvasState.scale + this.canvasState.position.y;
-    
+
     // Обновляем масштаб
     this.canvasState.scale = newScale;
-    
+
     // Обновляем позицию холста, чтобы точка под курсором осталась на месте
     this.canvasState.position.x = mouseCanvasX - mouseX / newScale;
     this.canvasState.position.y = mouseCanvasY - mouseY / newScale;
-    
+
     this.updateCanvasTransform();
   }
-  
+
   /**
    * Увеличение масштаба
    */
@@ -1112,10 +1144,10 @@ class DiagramController {
     const rect = canvas.getBoundingClientRect();
     const centerX = rect.left + rect.width / 2;
     const centerY = rect.top + rect.height / 2;
-    
+
     this.zoom(CONSTANTS.CANVAS.SCALE_STEP, centerX, centerY);
   }
-  
+
   /**
    * Уменьшение масштаба
    */
@@ -1124,20 +1156,20 @@ class DiagramController {
     const rect = canvas.getBoundingClientRect();
     const centerX = rect.left + rect.width / 2;
     const centerY = rect.top + rect.height / 2;
-    
+
     this.zoom(-CONSTANTS.CANVAS.SCALE_STEP, centerX, centerY);
   }
-  
+
   /**
    * Сброс масштаба к значению по умолчанию
    */
   resetZoom() {
     this.canvasState.scale = CONSTANTS.CANVAS.DEFAULT_SCALE;
     this.canvasState.position = { ...CONSTANTS.CANVAS.DEFAULT_POSITION };
-    
+
     this.updateCanvasTransform();
   }
-  
+
   /**
    * Обновление трансформации холста
    */
@@ -1148,7 +1180,7 @@ class DiagramController {
     // Обновляем рендеринг после изменения трансформации
     this.view.render();
   }
-  
+
   /**
    * Обновление позиции узла
    * @param {string} nodeId - ID узла
@@ -1157,7 +1189,7 @@ class DiagramController {
   updateNodePosition(nodeId, position) {
     this.model.updateNode(nodeId, { position });
   }
-  
+
   /**
    * Обработчик начала перетаскивания из боковой панели
    * @param {DragEvent} e - Событие перетаскивания
@@ -1165,26 +1197,26 @@ class DiagramController {
   handleDragStart(e) {
     const nodeType = e.target.dataset.nodeType;
     if (!nodeType) return;
-    
+
     // Создаем "призрак" перетаскивания
     const ghost = document.createElement('div');
     ghost.className = 'drag-ghost';
-    
+
     // Заполняем призрак иконкой и текстом
     const iconContainer = e.target.querySelector('.sidebar-item-icon');
     const iconHTML = iconContainer ? iconContainer.innerHTML : '';
     const text = e.target.querySelector('.sidebar-item-label').textContent;
-    
+
     ghost.innerHTML = `
       <div class="sidebar-item-icon ${nodeType}">${iconHTML}</div>
       <span>${text}</span>
     `;
-    
+
     document.body.appendChild(ghost);
-    
+
     // Запоминаем элемент призрака
     this.dragGhost = ghost;
-    
+
     // Устанавливаем начальную позицию призрака
     ghost.style.position = 'fixed';
     ghost.style.left = `${e.clientX}px`;
@@ -1192,19 +1224,19 @@ class DiagramController {
     ghost.style.pointerEvents = 'none';
     ghost.style.opacity = '0.8';
     ghost.style.zIndex = '1000';
-    
+
     // Добавляем класс dragging к перетаскиваемому элементу
     e.target.classList.add('dragging');
-    
+
     // Устанавливаем данные для передачи
     e.dataTransfer.setData('nodeType', nodeType);
     e.dataTransfer.effectAllowed = 'copy';
     e.dataTransfer.setDragImage(document.createElement('div'), 0, 0);
-    
+
     // Добавляем класс dropzone-active на холст
     document.getElementById('canvas').classList.add('dropzone-active');
   }
-  
+
   /**
    * Обработчик перетаскивания над холстом
    * @param {DragEvent} e - Событие перетаскивания
@@ -1212,51 +1244,51 @@ class DiagramController {
   handleDragOver(e) {
     e.preventDefault();
     e.dataTransfer.dropEffect = 'copy';
-    
+
     // Обновляем позицию призрака
     if (this.dragGhost) {
       this.dragGhost.style.left = `${e.clientX}px`;
       this.dragGhost.style.top = `${e.clientY}px`;
     }
   }
-  
+
   /**
    * Обработчик сбрасывания на холст
    * @param {DragEvent} e - Событие перетаскивания
    */
   handleDrop(e) {
     e.preventDefault();
-    
+
     // Удаляем призрак и классы
     if (this.dragGhost) {
       document.body.removeChild(this.dragGhost);
       this.dragGhost = null;
     }
-    
+
     document.querySelectorAll('[draggable="true"].dragging').forEach(el => {
       el.classList.remove('dragging');
     });
-    
+
     document.getElementById('canvas').classList.remove('dropzone-active');
-    
+
     // Получаем тип узла
     const nodeType = e.dataTransfer.getData('nodeType');
     if (!nodeType) return;
-    
+
     // Получаем координаты в системе холста
     const canvas = document.getElementById('canvas');
     const rect = canvas.getBoundingClientRect();
     const x = (e.clientX - rect.left) / this.canvasState.scale + this.canvasState.position.x;
     const y = (e.clientY - rect.top) / this.canvasState.scale + this.canvasState.position.y;
-    
+
     // Создаем новый узел
     const nodeId = this.model.addNode(nodeType, { x, y });
-    
+
     // Выбираем созданный узел
     this.model.setSelectedNode(nodeId);
     this.showPropertiesPanel();
   }
-  
+
   /**
    * Обработчик нажатий клавиш
    * @param {KeyboardEvent} e - Событие клавиатуры
@@ -1266,19 +1298,19 @@ class DiagramController {
     if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
       return;
     }
-    
+
     // Ctrl+Z - отмена действия
     if (e.ctrlKey && e.key === 'z' && !e.shiftKey) {
       e.preventDefault();
       this.undo();
     }
-    
+
     // Ctrl+Shift+Z или Ctrl+Y - повтор действия
     if ((e.ctrlKey && e.shiftKey && e.key === 'z') || (e.ctrlKey && e.key === 'y')) {
       e.preventDefault();
       this.redo();
     }
-    
+
     // Delete - удаление выбранного элемента
     if (e.key === 'Delete') {
       if (this.model.selectedNodeId) {
@@ -1295,13 +1327,13 @@ class DiagramController {
         this.model.removeConnection(this.model.selectedConnectionId);
       }
     }
-    
+
     // Ctrl+D - дублирование выбранного узла
     if (e.ctrlKey && e.key === 'd' && this.model.selectedNodeId) {
       e.preventDefault();
       this.duplicateNode(this.model.selectedNodeId);
     }
-    
+
     // Escape - отмена действия или сброс выделения
     if (e.key === 'Escape') {
       if (this.model.pendingConnection) {
@@ -1317,21 +1349,21 @@ class DiagramController {
       }
     }
   }
-  
+
   /**
    * Отмена последнего действия
    */
   undo() {
     this.model.undo();
   }
-  
+
   /**
    * Повтор отмененного действия
    */
   redo() {
     this.model.redo();
   }
-  
+
   /**
    * Дублирование узла
    * @param {string} nodeId - ID узла
@@ -1343,7 +1375,7 @@ class DiagramController {
       this.showPropertiesPanel();
     }
   }
-  
+
   /**
    * Показать панель свойств
    */
@@ -1354,7 +1386,7 @@ class DiagramController {
       this.view.updatePropertiesPanel();
     }
   }
-  
+
   /**
    * Скрыть панель свойств
    */
@@ -1364,7 +1396,7 @@ class DiagramController {
       panel.classList.remove('visible');
     }
   }
-  
+
   /**
    * Переключение сворачивания боковой панели
    */
@@ -1374,14 +1406,14 @@ class DiagramController {
       sidebar.classList.toggle('collapsed');
     }
   }
-  
+
   /**
    * Сохранение проекта
    */
   saveProject() {
     const data = this.model.exportData();
     const json = JSON.stringify(data, null, 2);
-    
+
     try {
       localStorage.setItem('bot_builder_data', json);
       this.showNotification('Проект успешно сохранен', 'success');
@@ -1390,7 +1422,7 @@ class DiagramController {
       this.showNotification('Ошибка сохранения проекта', 'error');
     }
   }
-  
+
   /**
    * Загрузка проекта
    */
@@ -1407,7 +1439,7 @@ class DiagramController {
       this.showNotification('Ошибка загрузки проекта', 'error');
     }
   }
-  
+
   /**
    * Показать модальное окно публикации
    */
@@ -1417,7 +1449,7 @@ class DiagramController {
       modal.style.display = 'flex';
     }
   }
-  
+
   /**
    * Показать уведомление
    * @param {string} message - Сообщение
@@ -1426,7 +1458,7 @@ class DiagramController {
   showNotification(message, type = 'info') {
     // Проверяем, существует ли контейнер для уведомлений
     let container = document.querySelector('.notifications-container');
-    
+
     // Если контейнер не существует, создаем его
     if (!container) {
       container = document.createElement('div');
@@ -1440,7 +1472,7 @@ class DiagramController {
       container.style.gap = '10px';
       document.body.appendChild(container);
     }
-    
+
     // Создаем уведомление
     const notification = document.createElement('div');
     notification.className = `notification notification-${type}`;
@@ -1457,7 +1489,7 @@ class DiagramController {
     notification.style.transition = 'all 0.3s ease';
     notification.style.transform = 'translateX(100%)';
     notification.style.opacity = '0';
-    
+
     // Добавляем цветовую полоску в зависимости от типа
     let color = '';
     switch (type) {
@@ -1473,9 +1505,9 @@ class DiagramController {
       default:
         color = 'var(--accent-primary)';
     }
-    
+
     notification.style.borderLeft = `4px solid ${color}`;
-    
+
     // Заполняем содержимое уведомления
     notification.innerHTML = `
       <div>${message}</div>
@@ -1485,16 +1517,16 @@ class DiagramController {
         </svg>
       </button>
     `;
-    
+
     // Добавляем уведомление в контейнер
     container.appendChild(notification);
-    
+
     // Анимация появления
     setTimeout(() => {
       notification.style.transform = 'translateX(0)';
       notification.style.opacity = '1';
     }, 10);
-    
+
     // Добавляем обработчик для закрытия
     const closeButton = notification.querySelector('.notification-close');
     closeButton.addEventListener('click', () => {
@@ -1504,7 +1536,7 @@ class DiagramController {
         notification.remove();
       }, 300);
     });
-    
+
     // Автоматическое закрытие через 5 секунд
     setTimeout(() => {
       if (notification.parentNode) {
@@ -1529,10 +1561,10 @@ class TooltipManager {
     this.activeTooltipTarget = null;
     this.tooltipDelay = 600; // мс
     this.tooltipTimer = null;
-    
+
     this.init();
   }
-  
+
   /**
    * Инициализация менеджера подсказок
    */
@@ -1542,13 +1574,13 @@ class TooltipManager {
     this.tooltipElement.className = 'tooltip';
     this.tooltipElement.style.display = 'none';
     document.body.appendChild(this.tooltipElement);
-    
+
     // Привязываем обработчики событий к документу
     document.addEventListener('mouseover', this.handleMouseOver.bind(this));
     document.addEventListener('mouseout', this.handleMouseOut.bind(this));
     document.addEventListener('mousemove', this.handleMouseMove.bind(this));
   }
-  
+
   /**
    * Обработчик наведения мыши
    * @param {MouseEvent} e - Событие мыши
@@ -1557,9 +1589,9 @@ class TooltipManager {
     // Находим ближайший элемент с data-tooltip
     const target = e.target.closest('[data-tooltip]');
     if (!target || this.activeTooltipTarget === target) return;
-    
+
     this.activeTooltipTarget = target;
-    
+
     // Устанавливаем таймер для отображения подсказки
     clearTimeout(this.tooltipTimer);
     this.tooltipTimer = setTimeout(() => {
@@ -1567,7 +1599,7 @@ class TooltipManager {
       this.showTooltip(tooltipText, e);
     }, this.tooltipDelay);
   }
-  
+
   /**
    * Обработчик ухода мыши
    * @param {MouseEvent} e - Событие мыши
@@ -1575,13 +1607,13 @@ class TooltipManager {
   handleMouseOut(e) {
     const target = e.target.closest('[data-tooltip]');
     if (!target) return;
-    
+
     // Если мышь ушла с элемента с подсказкой
     clearTimeout(this.tooltipTimer);
     this.hideTooltip();
     this.activeTooltipTarget = null;
   }
-  
+
   /**
    * Обработчик перемещения мыши
    * @param {MouseEvent} e - Событие мыши
@@ -1592,7 +1624,7 @@ class TooltipManager {
       this.positionTooltip(e);
     }
   }
-  
+
   /**
    * Показать подсказку
    * @param {string} text - Текст подсказки
@@ -1602,55 +1634,55 @@ class TooltipManager {
     // Заполняем содержимое подсказки
     this.tooltipElement.textContent = text;
     this.tooltipElement.style.display = 'block';
-    
+
     // Позиционируем подсказку
     this.positionTooltip(e);
-    
+
     // Анимируем появление
     this.tooltipElement.style.opacity = '0';
     this.tooltipElement.style.transform = 'translateY(5px)';
-    
+
     requestAnimationFrame(() => {
       this.tooltipElement.style.transition = 'opacity 0.2s, transform 0.2s';
       this.tooltipElement.style.opacity = '1';
       this.tooltipElement.style.transform = 'translateY(0)';
     });
   }
-  
+
   /**
    * Позиционирование подсказки
    * @param {MouseEvent} e - Событие мыши
    */
   positionTooltip(e) {
     const gap = 8; // отступ от курсора
-    
+
     // Размеры подсказки
     const tooltipRect = this.tooltipElement.getBoundingClientRect();
-    
+
     // Позиционируем подсказку относительно курсора
     let left = e.clientX + gap;
     let top = e.clientY + gap;
-    
+
     // Проверяем, не выходит ли подсказка за границы экрана
     if (left + tooltipRect.width > window.innerWidth) {
       left = e.clientX - tooltipRect.width - gap;
     }
-    
+
     if (top + tooltipRect.height > window.innerHeight) {
       top = e.clientY - tooltipRect.height - gap;
     }
-    
+
     this.tooltipElement.style.left = `${left}px`;
     this.tooltipElement.style.top = `${top}px`;
   }
-  
+
   /**
    * Скрыть подсказку
    */
   hideTooltip() {
     this.tooltipElement.style.opacity = '0';
     this.tooltipElement.style.transform = 'translateY(5px)';
-    
+
     // Скрываем подсказку после завершения анимации
     setTimeout(() => {
       if (this.activeTooltipTarget === null) {
@@ -1667,22 +1699,22 @@ class DiagramView {
   constructor(model, controller) {
     this.model = model;
     this.controller = controller;
-    
+
     // DOM-элементы
     this.canvas = document.getElementById('canvas');
     this.propertiesPanel = document.getElementById('properties-panel');
-    
+
     // Временное соединение
     this.pendingConnectionSvg = null;
-    
+
     // Состояние обновления
     this.updateQueue = [];
     this.isUpdateScheduled = false;
-    
+
     // Инициализация
     this.initModelListeners();
   }
-  
+
   /**
    * Инициализация слушателей модели
    */
@@ -1699,7 +1731,7 @@ class DiagramView {
     this.model.subscribe('onSelectionChanged', this.handleSelectionChanged.bind(this));
     this.model.subscribe('onStateChanged', this.handleStateChanged.bind(this));
   }
-  
+
   /**
    * Обработчик добавления узла
    * @param {Object} data - Данные события
@@ -1708,7 +1740,7 @@ class DiagramView {
     this.renderNode(data.node, true);
     this.scheduleUpdate();
   }
-  
+
   /**
    * Обработчик удаления узла
    * @param {Object} data - Данные события
@@ -1720,7 +1752,7 @@ class DiagramView {
       nodeElement.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
       nodeElement.style.opacity = '0';
       nodeElement.style.transform = 'scale(0.9)';
-      
+
       // Удаляем элемент после завершения анимации
       setTimeout(() => {
         if (nodeElement.parentNode) {
@@ -1728,26 +1760,26 @@ class DiagramView {
         }
       }, 300);
     }
-    
+
     this.scheduleUpdate();
   }
-  
+
   /**
    * Обработчик обновления узла
    * @param {Object} data - Данные события
    */
   handleNodeUpdated(data) {
     this.renderNode(data.node);
-    
+
     // Обновляем связанные соединения
     const connections = this.model.getConnectionsByNodeId(data.nodeId);
     connections.forEach(connection => {
       this.renderConnection(connection);
     });
-    
+
     this.scheduleUpdate();
   }
-  
+
   /**
    * Обработчик добавления элемента
    * @param {Object} data - Данные события
@@ -1758,14 +1790,14 @@ class DiagramView {
       this.renderNode(node);
       this.scheduleUpdate();
     }
-    
+
     // Обновляем панель свойств, если выбран элемент
-    if (this.model.selectedNodeId === data.nodeId && 
-        this.model.selectedElementId === data.elementId) {
+    if (this.model.selectedNodeId === data.nodeId &&
+      this.model.selectedElementId === data.elementId) {
       this.updatePropertiesPanel();
     }
   }
-  
+
   /**
    * Обработчик удаления элемента
    * @param {Object} data - Данные события
@@ -1776,13 +1808,13 @@ class DiagramView {
       this.renderNode(node);
       this.scheduleUpdate();
     }
-    
+
     // Обновляем панель свойств
     if (this.model.selectedNodeId === data.nodeId) {
       this.updatePropertiesPanel();
     }
   }
-  
+
   /**
    * Обработчик обновления элемента
    * @param {Object} data - Данные события
@@ -1793,14 +1825,14 @@ class DiagramView {
       this.renderNode(node);
       this.scheduleUpdate();
     }
-    
+
     // Обновляем панель свойств, если выбран элемент
-    if (this.model.selectedNodeId === data.nodeId && 
-        this.model.selectedElementId === data.elementId) {
+    if (this.model.selectedNodeId === data.nodeId &&
+      this.model.selectedElementId === data.elementId) {
       this.updatePropertiesPanel();
     }
   }
-  
+
   /**
    * Обработчик добавления соединения
    * @param {Object} data - Данные события
@@ -1812,7 +1844,7 @@ class DiagramView {
       this.scheduleUpdate();
     }
   }
-  
+
   /**
    * Обработчик удаления соединения
    * @param {Object} data - Данные события
@@ -1823,7 +1855,7 @@ class DiagramView {
       // Анимируем удаление соединения
       connectionElement.style.transition = 'opacity 0.3s ease';
       connectionElement.style.opacity = '0';
-      
+
       // Удаляем элемент после завершения анимации
       setTimeout(() => {
         if (connectionElement.parentNode) {
@@ -1831,10 +1863,10 @@ class DiagramView {
         }
       }, 300);
     }
-    
+
     this.scheduleUpdate();
   }
-  
+
   /**
    * Обработчик изменения выделения
    * @param {Object} data - Данные события
@@ -1844,17 +1876,17 @@ class DiagramView {
     document.querySelectorAll('.node.selected').forEach(node => {
       node.classList.remove('selected');
     });
-    
+
     // Обновляем выделение соединений
     document.querySelectorAll('.connection.selected').forEach(connection => {
       connection.classList.remove('selected');
     });
-    
+
     // Обновляем выделение элементов
     document.querySelectorAll('.node-element.selected').forEach(element => {
       element.classList.remove('selected');
     });
-    
+
     // Устанавливаем новое выделение
     if (data.type === 'node' && data.nodeId) {
       const nodeElement = document.getElementById(data.nodeId);
@@ -1865,7 +1897,7 @@ class DiagramView {
       const nodeElement = document.getElementById(data.nodeId);
       if (nodeElement) {
         nodeElement.classList.add('selected');
-        
+
         const elementElement = nodeElement.querySelector(`.node-element[data-element-id="${data.elementId}"]`);
         if (elementElement) {
           elementElement.classList.add('selected');
@@ -1877,13 +1909,13 @@ class DiagramView {
         connectionElement.classList.add('selected');
       }
     }
-    
+
     // Обновляем панель свойств
     this.updatePropertiesPanel();
-    
+
     this.scheduleUpdate();
   }
-  
+
   /**
    * Обработчик изменения состояния
    * @param {Object} data - Данные события
@@ -1902,17 +1934,17 @@ class DiagramView {
       // Полная перерисовка при импорте данных или восстановлении из истории
       this.render();
     }
-    
+
     this.scheduleUpdate();
   }
-  
+
   /**
    * Планирование обновления представления
    */
   scheduleUpdate() {
     if (!this.isUpdateScheduled) {
       this.isUpdateScheduled = true;
-      
+
       // Используем requestAnimationFrame для оптимизации производительности
       requestAnimationFrame(() => {
         this.processPendingUpdates();
@@ -1920,7 +1952,7 @@ class DiagramView {
       });
     }
   }
-  
+
   /**
    * Обработка отложенных обновлений
    */
@@ -1928,7 +1960,7 @@ class DiagramView {
     // Место для возможной оптимизации обновлений
     // Например, группировка сходных обновлений или отложенный рендеринг
   }
-  
+
   /**
    * Получение видимой области с учетом масштаба и позиции холста
    */
@@ -1960,9 +1992,9 @@ class DiagramView {
     const nodeBottom = node.position.y + nodeHeight;
 
     return !(nodeRight < visibleRect.left - padding ||
-             node.position.x > visibleRect.right + padding ||
-             nodeBottom < visibleRect.top - padding ||
-             node.position.y > visibleRect.bottom + padding);
+      node.position.x > visibleRect.right + padding ||
+      nodeBottom < visibleRect.top - padding ||
+      node.position.y > visibleRect.bottom + padding);
   }
 
   /**
@@ -1986,7 +2018,7 @@ class DiagramView {
       const targetNode = this.model.getNodeById(connection.target);
 
       if ((sourceNode && this.isNodeInVisibleRect(sourceNode, visibleRect)) ||
-          (targetNode && this.isNodeInVisibleRect(targetNode, visibleRect))) {
+        (targetNode && this.isNodeInVisibleRect(targetNode, visibleRect))) {
         this.renderConnection(connection);
       }
     });
@@ -2026,13 +2058,13 @@ class DiagramView {
         const targetNode = this.model.getNodeById(connection.target);
 
         if ((!sourceNode || !this.isNodeInVisibleRect(sourceNode, visibleRect)) &&
-            (!targetNode || !this.isNodeInVisibleRect(targetNode, visibleRect))) {
+          (!targetNode || !this.isNodeInVisibleRect(targetNode, visibleRect))) {
           connectionElement.remove();
         }
       }
     });
   }
-  
+
   /**
    * Отрисовка узла
    * @param {Object} node - Данные узла
@@ -2041,28 +2073,28 @@ class DiagramView {
   renderNode(node, animate = false) {
     // Проверяем, существует ли уже элемент для этого узла
     let nodeElement = document.getElementById(node.id);
-    
+
     if (!nodeElement) {
       // Создаем новый элемент узла
       nodeElement = document.createElement('div');
       nodeElement.id = node.id;
       nodeElement.className = 'node';
       nodeElement.dataset.nodeType = node.type;
-      
+
       // Добавляем в DOM
       this.canvas.appendChild(nodeElement);
-      
+
       // Добавляем анимацию появления
       if (animate) {
         nodeElement.style.opacity = '0';
         nodeElement.style.transform = 'scale(0.9)';
-        
+
         // После добавления в DOM, анимируем появление
         setTimeout(() => {
           nodeElement.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
           nodeElement.style.opacity = '1';
           nodeElement.style.transform = 'scale(1)';
-          
+
           // Убираем transition после завершения анимации
           setTimeout(() => {
             nodeElement.style.transition = '';
@@ -2070,22 +2102,22 @@ class DiagramView {
         }, 10);
       }
     }
-    
+
     // Обновляем класс выбранного узла
     if (this.model.selectedNodeId === node.id) {
       nodeElement.classList.add('selected');
     } else {
       nodeElement.classList.remove('selected');
     }
-    
+
     // Обновляем позицию узла
     nodeElement.style.left = `${node.position.x}px`;
     nodeElement.style.top = `${node.position.y}px`;
-    
+
     // Обновляем содержимое узла
     this.renderNodeContent(nodeElement, node);
   }
-  
+
   /**
    * Отрисовка содержимого узла
    * @param {HTMLElement} nodeElement - DOM-элемент узла
@@ -2113,15 +2145,15 @@ class DiagramView {
         </div>
       </div>
     `;
-    
+
     // Создаем содержимое узла
     let contentHTML = '<div class="node-content">';
-    
+
     // Добавляем элементы узла
     node.elements.forEach(element => {
       contentHTML += this.renderNodeElement(element, node.id);
     });
-    
+
     // Добавляем кнопку для добавления элемента
     contentHTML += `
       <div class="node-add-element">
@@ -2129,20 +2161,20 @@ class DiagramView {
       </div>
     </div>
     `;
-    
+
     // Добавляем порты для соединений
     const portsHTML = `
       <div class="node-port node-port-in"></div>
       <div class="node-port node-port-out"></div>
     `;
-    
+
     // Обновляем содержимое
     nodeElement.innerHTML = headerHTML + contentHTML + portsHTML;
-    
+
     // Добавляем обработчики событий для кнопок
     this.addNodeEventListeners(nodeElement, node.id);
   }
-  
+
   /**
    * Отрисовка элемента узла
    * @param {Object} element - Данные элемента
@@ -2151,12 +2183,12 @@ class DiagramView {
    */
   renderNodeElement(element, nodeId) {
     // Проверка, выбран ли элемент
-    const isSelected = this.model.selectedNodeId === nodeId && 
-                      this.model.selectedElementId === element.id;
-    
-    // Создаем класс для выделения
+    const isSelected = this.model.selectedNodeId === nodeId &&
+      this.model.selectedElementId === element.id;
+
+    // Создаем классдля выделения
     const selectedClass = isSelected ? 'selected' : '';
-    
+
     // Заголовок элемента
     let html = `
       <div class="node-element ${selectedClass}" data-element-id="${element.id}">
@@ -2169,10 +2201,10 @@ class DiagramView {
           </button>
         </div>
     `;
-    
+
     // Содержимое элемента в зависимости от типа
     html += '<div class="node-element-content">';
-    
+
     switch (element.type) {
       case CONSTANTS.ELEMENT.TYPES.TEXT:
         html += `<div class="element-text">${element.data.text || 'Пустой текст'}</div>`;
@@ -2180,11 +2212,11 @@ class DiagramView {
       case CONSTANTS.ELEMENT.TYPES.IMAGE:
         html += `
           <div class="element-image">
-            ${element.data.url ? 
-              `<div class="image-preview">
+            ${element.data.url ?
+            `<div class="image-preview">
                 <img src="${element.data.url}" alt="${element.data.caption || 'Изображение'}" onerror="this.src='/api/placeholder/150/100';this.onerror=null;" style="max-width:100%;max-height:80px;object-fit:contain;" />
-               </div>` : 
-              'Изображение: [не задано]'}
+               </div>` :
+            'Изображение: [не задано]'}
             ${element.data.caption ? `<div class="image-caption">${element.data.caption}</div>` : ''}
           </div>`;
         break;
@@ -2199,9 +2231,9 @@ class DiagramView {
           <div class="element-choice">
             <div class="element-choice-question">${element.data.question || 'Выберите вариант:'}</div>
             <div class="element-choice-options">
-              ${(element.data.options || []).map(option => 
-                `<div class="element-choice-option">${option}</div>`
-              ).join('')}
+              ${(element.data.options || []).map(option =>
+          `<div class="element-choice-option">${option}</div>`
+        ).join('')}
             </div>
           </div>
         `;
@@ -2209,12 +2241,12 @@ class DiagramView {
       default:
         html += `<div>Неизвестный тип элемента: ${element.type}</div>`;
     }
-    
+
     html += '</div></div>';
-    
+
     return html;
   }
-  
+
   /**
    * Добавление обработчиков событий для узла
    * @param {HTMLElement} nodeElement - DOM-элемент узла
@@ -2229,7 +2261,7 @@ class DiagramView {
         this.controller.duplicateNode(nodeId);
       });
     }
-    
+
     // Кнопка удаления узла
     const removeBtn = nodeElement.querySelector('.node-header .actions button[aria-label="Удалить"]');
     if (removeBtn) {
@@ -2238,7 +2270,7 @@ class DiagramView {
         this.model.removeNode(nodeId);
       });
     }
-    
+
     // Кнопка добавления элемента
     const addElementBtn = nodeElement.querySelector('.node-add-element button');
     if (addElementBtn) {
@@ -2247,12 +2279,12 @@ class DiagramView {
         this.showElementPanel(nodeElement, nodeId);
       });
     }
-    
+
     // Обработчики для элементов узла
     const elements = nodeElement.querySelectorAll('.node-element');
     elements.forEach(element => {
       const elementId = element.dataset.elementId;
-      
+
       // Кнопка удаления элемента
       const removeElementBtn = element.querySelector('.node-element-header button');
       if (removeElementBtn) {
@@ -2261,7 +2293,7 @@ class DiagramView {
           this.model.removeElement(nodeId, elementId);
         });
       }
-      
+
       // Выбор элемента при клике
       element.addEventListener('click', (e) => {
         e.stopPropagation();
@@ -2269,18 +2301,18 @@ class DiagramView {
         this.controller.showPropertiesPanel();
       });
     });
-    
+
     // Обработчик для заголовка (начало перетаскивания)
     const header = nodeElement.querySelector('.node-header');
     if (header) {
       header.addEventListener('mousedown', (e) => {
         if (e.target.closest('button')) return; // Игнорируем клики по кнопкам
-        
+
         // Начинаем перетаскивание узла
-        this.controller.startNodeDrag(e, nodeId);
+        // this.controller.startNodeDrag(e, nodeId);
       });
     }
-    
+
     // Обработчики для портов (создание соединений)
     const outputPort = nodeElement.querySelector('.node-port-out');
     if (outputPort) {
@@ -2289,19 +2321,19 @@ class DiagramView {
         this.controller.startConnectionCreation(e, nodeId);
       });
     }
-    
+
     // Обработчик для клика по узлу (выделение)
     nodeElement.addEventListener('click', (e) => {
       // Игнорируем клики по элементам и кнопкам
       if (e.target.closest('.node-element') || e.target.closest('button') || e.target.closest('.node-port')) {
         return;
       }
-      
+
       this.model.setSelectedNode(nodeId);
       this.controller.showPropertiesPanel();
     });
   }
-  
+
   /**
    * Показ панели выбора элемента
    * @param {HTMLElement} nodeElement - DOM-элемент узла
@@ -2310,14 +2342,14 @@ class DiagramView {
   showElementPanel(nodeElement, nodeId) {
     // Проверяем, существует ли уже панель выбора элемента
     let elementPanel = document.getElementById('element-panel');
-    
+
     // Если панель не существует, создаем ее
     if (!elementPanel) {
       elementPanel = document.createElement('div');
       elementPanel.id = 'element-panel';
       elementPanel.className = 'element-panel';
       document.body.appendChild(elementPanel);
-      
+
       // Создаем содержимое панели
       elementPanel.innerHTML = `
         <div class="element-panel-header">
@@ -2335,7 +2367,7 @@ class DiagramView {
           <div class="element-type" data-element-type="image">
             <div class="icon-container">
               <svg class="icon" viewBox="0 0 24 24">
-                <path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"></path>
+                <path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm-8 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"></path>
               </svg>
             </div>
             <span>Изображение</span>
@@ -2366,60 +2398,60 @@ class DiagramView {
           </div>
         </div>
       `;
-      
+
       // Добавляем обработчики для типов элементов
       const elementTypes = elementPanel.querySelectorAll('.element-type');
       elementTypes.forEach(typeElement => {
         typeElement.addEventListener('click', () => {
           const elementType = typeElement.dataset.elementType;
           const panelNodeId = elementPanel.dataset.nodeId;
-          
+
           if (panelNodeId && elementType) {
             // Добавляем новый элемент
             const elementId = this.model.addElement(panelNodeId, elementType);
-            
+
             // Выбираем созданный элемент
             if (elementId) {
               this.model.setSelectedElement(panelNodeId, elementId);
               this.controller.showPropertiesPanel();
             }
-            
+
             // Скрываем панель
             elementPanel.style.display = 'none';
           }
         });
       });
-      
+
       // Закрытие панели при клике вне ее
       document.addEventListener('click', (e) => {
-        if (elementPanel.style.display !== 'none' && 
-            !elementPanel.contains(e.target) && 
-            !e.target.closest('.node-add-element button')) {
+        if (elementPanel.style.display !== 'none' &&
+          !elementPanel.contains(e.target) &&
+          !e.target.closest('.node-add-element button')) {
           elementPanel.style.display = 'none';
         }
       });
     }
-    
+
     // Позиционируем панель под узлом
     const rect = nodeElement.getBoundingClientRect();
     elementPanel.style.position = 'absolute';
     elementPanel.style.left = `${rect.left}px`;
     elementPanel.style.top = `${rect.bottom + 10}px`;
-    
+
     // Проверяем, не выходит ли панель за границы экрана
     const elementPanelRect = elementPanel.getBoundingClientRect();
     if (rect.left + elementPanelRect.width > window.innerWidth) {
       elementPanel.style.left = `${window.innerWidth - elementPanelRect.width - 10}px`;
     }
-    
+
     // Сохраняем ID узла
     elementPanel.dataset.nodeId = nodeId;
-    
+
     // Показываем панель с анимацией
     elementPanel.style.display = 'block';
     elementPanel.style.opacity = '0';
     elementPanel.style.transform = 'translateY(-10px)';
-    
+
     // Анимируем появление
     requestAnimationFrame(() => {
       elementPanel.style.transition = 'opacity 0.2s, transform 0.2s';
@@ -2427,7 +2459,7 @@ class DiagramView {
       elementPanel.style.transform = 'translateY(0)';
     });
   }
-  
+
   /**
    * Отрисовка соединения
    * @param {Object} connection - Данные соединения
@@ -2435,64 +2467,64 @@ class DiagramView {
   renderConnection(connection) {
     const sourceNode = this.model.getNodeById(connection.source);
     const targetNode = this.model.getNodeById(connection.target);
-    
+
     if (!sourceNode || !targetNode) return;
-    
+
     // Проверяем, существует ли уже элемент для этого соединения
     let connectionElement = document.getElementById(connection.id);
-    
+
     // Если элемент существует, удаляем его для перерисовки
     if (connectionElement) {
       connectionElement.remove();
     }
-    
+
     // Создаем SVG для соединения
     connectionElement = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
     connectionElement.setAttribute('class', 'connection');
     connectionElement.setAttribute('id', connection.id);
-    
+
     // Проверяем, выбрано ли соединение
     if (this.model.selectedConnectionId === connection.id) {
       connectionElement.classList.add('selected');
     }
-    
+
     // Получаем DOM-элементы узлов
     const sourceElement = document.getElementById(connection.source);
     const targetElement = document.getElementById(connection.target);
-    
+
     if (!sourceElement || !targetElement) return;
-    
+
     // Получаем порты узлов
     const sourcePort = sourceElement.querySelector('.node-port-out');
     const targetPort = targetElement.querySelector('.node-port-in');
-    
+
     if (!sourcePort || !targetPort) return;
-    
+
     // Вычисляем координаты портов
     const sourceRect = sourceElement.getBoundingClientRect();
     const targetRect = targetElement.getBoundingClientRect();
-    
+
     // Позиция исходного порта
     const sourceX = sourceNode.position.x + sourceRect.width / 2;
     const sourceY = sourceNode.position.y + sourceRect.height;
-    
+
     // Позиция целевого порта
     const targetX = targetNode.position.x + targetRect.width / 2;
     const targetY = targetNode.position.y;
-    
+
     // Отрисовываем соединение
     this.drawConnection(connectionElement, sourceX, sourceY, targetX, targetY);
-    
+
     // Добавляем в DOM
     this.canvas.appendChild(connectionElement);
-    
+
     // Добавляем обработчик для выбора соединения
     connectionElement.addEventListener('click', (e) => {
       e.stopPropagation();
       this.model.setSelectedConnection(connection.id);
     });
   }
-  
+
   /**
    * Отрисовка временного соединения
    * @param {Object} sourcePosition - Позиция исходного порта
@@ -2501,26 +2533,26 @@ class DiagramView {
   renderPendingConnection(sourcePosition, targetPosition) {
     // Удаляем предыдущее временное соединение
     this.clearPendingConnection();
-    
+
     // Создаем SVG для временного соединения
     this.pendingConnectionSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
     this.pendingConnectionSvg.setAttribute('class', 'connection pending');
     this.pendingConnectionSvg.setAttribute('id', 'pending-connection');
-    
+
     // Создаем путь для соединения с пунктирной линией
     this.drawConnection(
-      this.pendingConnectionSvg, 
-      sourcePosition.x, 
-      sourcePosition.y, 
-      targetPosition.x, 
+      this.pendingConnectionSvg,
+      sourcePosition.x,
+      sourcePosition.y,
+      targetPosition.x,
       targetPosition.y,
       true
     );
-    
+
     // Добавляем в DOM
     this.canvas.appendChild(this.pendingConnectionSvg);
   }
-  
+
   /**
    * Удаление временного соединения
    */
@@ -2530,7 +2562,7 @@ class DiagramView {
       this.pendingConnectionSvg = null;
     }
   }
-  
+
   /**
    * Отрисовка пути соединения
    * @param {SVGElement} svg - SVG-элемент соединения
@@ -2547,55 +2579,55 @@ class DiagramView {
     const top = Math.min(y1, y2) - padding;
     const width = Math.abs(x2 - x1) + 2 * padding;
     const height = Math.abs(y2 - y1) + 2 * padding;
-    
+
     svg.style.left = `${left}px`;
     svg.style.top = `${top}px`;
     svg.style.width = `${width}px`;
     svg.style.height = `${height}px`;
-    
+
     // Координаты относительно SVG
     const sx = x1 - left;
     const sy = y1 - top;
     const tx = x2 - left;
     const ty = y2 - top;
-    
+
     // Контрольные точки для кривой Безье
     const dx = Math.abs(tx - sx);
     const dy = Math.abs(ty - sy);
     const controlPointDistance = Math.min(100, Math.max(dx, dy) * 0.5);
-    
+
     // Создаем путь для соединения
     const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
     const d = `M ${sx} ${sy} C ${sx} ${sy + controlPointDistance}, ${tx} ${ty - controlPointDistance}, ${tx} ${ty}`;
-    
+
     path.setAttribute('d', d);
-    
+
     // Для временного соединения добавляем пунктирную линию
     if (isPending) {
       path.setAttribute('stroke-dasharray', '5,5');
       path.setAttribute('class', 'pending');
     }
-    
+
     // Добавляем стрелку на конце соединения
     const arrowMarker = this.createArrowMarker(tx, ty, tx, ty - controlPointDistance);
-    
+
     // Добавляем элементы в SVG
     svg.appendChild(path);
     svg.appendChild(arrowMarker);
-    
+
     // Добавляем анимацию для новых соединений (не временных)
     if (!isPending && !document.getElementById(svg.id)) {
       path.style.strokeDasharray = '200';
       path.style.strokeDashoffset = '200';
       path.style.transition = 'stroke-dashoffset 0.5s ease';
-      
+
       // После добавления в DOM, анимируем появление
       setTimeout(() => {
         path.style.strokeDashoffset = '0';
       }, 10);
     }
   }
-  
+
   /**
    * Создание стрелки для соединения
    * @param {number} x - X-координата конечной точки
@@ -2609,51 +2641,51 @@ class DiagramView {
     const dx = x - cx;
     const dy = y - cy;
     const angle = Math.atan2(dy, dx);
-    
+
     // Размер стрелки
     const arrowSize = 8;
-    
+
     // Точки стрелки
     const p1 = {
-      x: x - arrowSize * Math.cos(angle - Math.PI/6),
-      y: y - arrowSize * Math.sin(angle - Math.PI/6)
+      x: x - arrowSize * Math.cos(angle - Math.PI / 6),
+      y: y - arrowSize * Math.sin(angle - Math.PI / 6)
     };
-    
+
     const p2 = {
-      x: x - arrowSize * Math.cos(angle + Math.PI/6),
-      y: y - arrowSize * Math.sin(angle + Math.PI/6)
+      x: x - arrowSize * Math.cos(angle + Math.PI / 6),
+      y: y - arrowSize * Math.sin(angle + Math.PI / 6)
     };
-    
+
     // Создаем элемент стрелки
     const arrow = document.createElementNS('http://www.w3.org/2000/svg', 'path');
     arrow.setAttribute('d', `M ${x} ${y} L ${p1.x} ${p1.y} L ${p2.x} ${p2.y} Z`);
     arrow.setAttribute('class', 'connection-arrow');
-    
+
     return arrow;
   }
-  
+
   /**
    * Обновление панели свойств
    */
   updatePropertiesPanel() {
     if (!this.propertiesPanel) return;
-    
+
     // Заголовок панели
     const propertiesTitle = this.propertiesPanel.querySelector('.properties-title');
     const propertiesIcon = this.propertiesPanel.querySelector('.properties-icon');
     const propertiesContent = this.propertiesPanel.querySelector('.properties-panel-body');
-    
+
     if (!propertiesTitle || !propertiesIcon || !propertiesContent) return;
-    
+
     // Получаем выбранный элемент
     if (this.model.selectedNodeId) {
       const node = this.model.getNodeById(this.model.selectedNodeId);
       if (!node) return;
-      
+
       // Обновляем заголовок и иконку
       propertiesTitle.querySelector('span').textContent = node.title;
       propertiesIcon.innerHTML = this.getNodeTypeIcon(node.type);
-      
+
       // Обновляем форму свойств
       if (this.model.selectedElementId) {
         // Показываем свойства элемента
@@ -2662,7 +2694,7 @@ class DiagramView {
         // Показываем свойства узла
         this.updateNodePropertiesForm(node);
       }
-      
+
     } else if (this.model.selectedConnectionId) {
       // Показываем свойства соединения
       const connection = this.model.getConnectionById(this.model.selectedConnectionId);
@@ -2671,7 +2703,7 @@ class DiagramView {
       }
     }
   }
-  
+
   /**
    * Получение иконки для типа узла
    * @param {string} nodeType - Тип узла
@@ -2679,7 +2711,7 @@ class DiagramView {
    */
   getNodeTypeIcon(nodeType) {
     let iconPath = '';
-    
+
     switch (nodeType) {
       case CONSTANTS.NODE.TYPES.START:
         iconPath = '<svg class="icon" viewBox="0 0 24 24" style="color: var(--accent-primary);"><path d="M8 5v14l11-7z"></path></svg>';
@@ -2705,10 +2737,10 @@ class DiagramView {
       default:
         iconPath = '<svg class="icon" viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 15.5h-2V14h-2v-2h2V9.5h2V12h2v2h-2v4.5z"></path></svg>';
     }
-    
+
     return iconPath;
   }
-  
+
   /**
    * Обновление формы свойств узла
    * @param {Object} node - Данные узла
@@ -2716,10 +2748,10 @@ class DiagramView {
   updateNodePropertiesForm(node) {
     const form = this.createNodePropertiesForm(node);
     const propertiesContent = this.propertiesPanel.querySelector('.properties-panel-body');
-    
+
     // Очищаем содержимое
     propertiesContent.innerHTML = '';
-    
+
     // Добавляем превью узла
     const preview = document.createElement('div');
     preview.className = 'properties-preview';
@@ -2730,28 +2762,28 @@ class DiagramView {
         <div style="margin-top: 4px; font-size: 12px; opacity: 0.7;">ID: ${node.id}</div>
       </div>
     `;
-    
+
     propertiesContent.appendChild(preview);
     propertiesContent.appendChild(form);
-    
+
     // Добавляем обработчики для формы
     this.addNodeFormEventListeners(form, node);
-    
+
     // Обновляем кнопки на панели
     const deleteButton = this.propertiesPanel.querySelector('#delete-element');
     const duplicateButton = this.propertiesPanel.querySelector('#duplicate-element');
-    
+
     if (deleteButton) {
       deleteButton.innerText = 'Удалить';
       deleteButton.onclick = () => this.model.removeNode(node.id);
     }
-    
+
     if (duplicateButton) {
       duplicateButton.innerText = 'Дублировать';
       duplicateButton.onclick = () => this.controller.duplicateNode(node.id);
     }
   }
-  
+
   /**
    * Создание формы свойств узла
    * @param {Object} node - Данные узла
@@ -2760,7 +2792,7 @@ class DiagramView {
   createNodePropertiesForm(node) {
     const form = document.createElement('div');
     form.className = 'properties-form';
-    
+
     // Общие настройки
     const generalSection = document.createElement('div');
     generalSection.className = 'properties-section';
@@ -2775,9 +2807,9 @@ class DiagramView {
         <textarea id="node-description" class="form-control" placeholder="Описание узла...">${node.description || ''}</textarea>
       </div>
     `;
-    
+
     form.appendChild(generalSection);
-    
+
     // Дополнительные настройки в зависимости от типа узла
     switch (node.type) {
       case CONSTANTS.NODE.TYPES.START:
@@ -2803,7 +2835,7 @@ class DiagramView {
             </select>
           </div>
         `;
-        
+
         form.appendChild(inputSection);
         break;
       case CONSTANTS.NODE.TYPES.LOGIC:
@@ -2820,14 +2852,14 @@ class DiagramView {
             </select>
           </div>
         `;
-        
+
         form.appendChild(logicSection);
         break;
     }
-    
+
     return form;
   }
-  
+
   /**
    * Добавление обработчиков к форме свойств узла
    * @param {HTMLElement} form - DOM-элемент формы
@@ -2841,7 +2873,7 @@ class DiagramView {
         this.model.updateNode(node.id, { title: nameInput.value });
       });
     }
-    
+
     // Обработчик изменения описания
     const descriptionTextarea = form.querySelector('#node-description');
     if (descriptionTextarea) {
@@ -2849,7 +2881,7 @@ class DiagramView {
         this.model.updateNode(node.id, { description: descriptionTextarea.value });
       });
     }
-    
+
     // Обработчики для специфичных полей узлов
     switch (node.type) {
       case CONSTANTS.NODE.TYPES.INPUT:
@@ -2870,7 +2902,7 @@ class DiagramView {
         break;
     }
   }
-  
+
   /**
    * Обновление формы свойств элемента
    * @param {Object} node - Данные узла
@@ -2879,17 +2911,17 @@ class DiagramView {
   updateElementPropertiesForm(node, elementId) {
     const element = node.elements.find(el => el.id === elementId);
     if (!element) return;
-    
+
     const form = this.createElementPropertiesForm(node, element);
     const propertiesContent = this.propertiesPanel.querySelector('.properties-panel-body');
-    
+
     // Очищаем содержимое
     propertiesContent.innerHTML = '';
-    
+
     // Добавляем превью элемента
     const preview = document.createElement('div');
     preview.className = 'properties-preview';
-    
+
     // Создаем превью в зависимости от типа элемента
     switch (element.type) {
       case CONSTANTS.ELEMENT.TYPES.TEXT:
@@ -2902,9 +2934,9 @@ class DiagramView {
       case CONSTANTS.ELEMENT.TYPES.IMAGE:
         preview.innerHTML = `
           <div style="padding: 16px; background-color: var(--bg-tertiary); border-radius: var(--radius-medium); text-align: center;">
-            ${element.data.url ? 
-              `<img src="${element.data.url}" alt="${element.data.caption || 'Изображение'}" onerror="this.src='/api/placeholder/220/150';this.onerror=null;" style="max-width:100%; max-height:120px; object-fit:contain;" />` : 
-              '<div style="width: 100%; height: 120px; display: flex; align-items: center; justify-content: center; color: var(--text-secondary);">Изображение не задано</div>'}
+            ${element.data.url ?
+            `<img src="${element.data.url}" alt="${element.data.caption || 'Изображение'}" onerror="this.src='/api/placeholder/220/150';this.onerror=null;" style="max-width:100%; max-height:120px; object-fit:contain;" />` :
+            '<div style="width: 100%; height: 120px; display: flex; align-items: center; justify-content: center; color: var(--text-secondary);">Изображение не задано</div>'}
           </div>
         `;
         break;
@@ -2937,30 +2969,30 @@ class DiagramView {
           <div style="padding: 16px; background-color: var(--bg-tertiary); border-radius: var(--radius-medium);">
             <div class="element-choice-question" style="margin-bottom: 8px; font-weight: 500;">${element.data.question || 'Выберите вариант:'}</div>
             <div class="element-choice-options" style="display: flex; flex-direction: column; gap: 4px;">
-              ${(element.data.options || []).map(option => 
-                `<div class="element-choice-option" style="padding: 6px 12px; background-color: var(--bg-primary); border-radius: var(--radius-small);">${option}</div>`
-              ).join('')}
+              ${(element.data.options || []).map(option =>
+          `<div class="element-choice-option">${option}</div>`
+        ).join('')}
             </div>
           </div>
         `;
         break;
     }
-    
+
     propertiesContent.appendChild(preview);
     propertiesContent.appendChild(form);
-    
+
     // Добавляем обработчики для формы
     this.addElementFormEventListeners(form, node, element);
-    
+
     // Обновляем кнопки на панели
     const deleteButton = this.propertiesPanel.querySelector('#delete-element');
     const duplicateButton = this.propertiesPanel.querySelector('#duplicate-element');
-    
+
     if (deleteButton) {
       deleteButton.innerText = 'Удалить элемент';
       deleteButton.onclick = () => this.model.removeElement(node.id, element.id);
     }
-    
+
     if (duplicateButton) {
       duplicateButton.innerText = 'Дублировать элемент';
       duplicateButton.onclick = () => {
@@ -2968,13 +3000,13 @@ class DiagramView {
         const newElement = node.elements.find(el => el.id === newElementId);
         if (newElement) {
           // Копируем данные из исходного элемента
-          this.model.updateElement(node.id, newElementId, {...element.data});
+          this.model.updateElement(node.id, newElementId, { ...element.data });
           this.model.setSelectedElement(node.id, newElementId);
         }
       };
     }
   }
-  
+
   /**
    * Создание формы свойств элемента
    * @param {Object} node - Данные узла
@@ -2984,7 +3016,7 @@ class DiagramView {
   createElementPropertiesForm(node, element) {
     const form = document.createElement('div');
     form.className = 'properties-form';
-    
+
     // Заголовок и общие настройки
     const generalSection = document.createElement('div');
     generalSection.className = 'properties-section';
@@ -3001,14 +3033,14 @@ class DiagramView {
         </select>
       </div>
     `;
-    
+
     form.appendChild(generalSection);
-    
+
     // Контент элемента
     const contentSection = document.createElement('div');
     contentSection.className = 'properties-section';
     contentSection.innerHTML = `<h3 class="properties-section-title">Содержимое</h3>`;
-    
+
     // Поля в зависимости от типа элемента
     switch (element.type) {
       case CONSTANTS.ELEMENT.TYPES.TEXT:
@@ -3101,17 +3133,16 @@ class DiagramView {
         `;
         break;
     }
-    
+
     form.appendChild(contentSection);
-    
+
     return form;
   }
-  
+
   /**
-   * Добавление обработчиков к форме свойств элемента
+   * Добавление обработчиков к форме свойств узла
    * @param {HTMLElement} form - DOM-элемент формы
    * @param {Object} node - Данные узла
-   * @param {Object} element - Данные элемента
    */
   addElementFormEventListeners(form, node, element) {
     // Обработчики в зависимости от типа элемента
@@ -3123,7 +3154,7 @@ class DiagramView {
             this.model.updateElement(node.id, element.id, { text: textArea.value });
           });
         }
-        
+
         // Обработчики для кнопок форматирования
         const formatButtons = form.querySelectorAll('[data-format]');
         formatButtons.forEach(button => {
@@ -3133,7 +3164,7 @@ class DiagramView {
             const start = textarea.selectionStart;
             const end = textarea.selectionEnd;
             const selectedText = textarea.value.substring(start, end);
-            
+
             let newText = '';
             switch (format) {
               case 'bold':
@@ -3146,13 +3177,13 @@ class DiagramView {
                 newText = `[${selectedText}](https://example.com)`;
                 break;
             }
-            
+
             // Вставляем отформатированный текст
             textarea.setRangeText(newText, start, end, 'select');
-            
+
             // Обновляем данные элемента
             this.model.updateElement(node.id, element.id, { text: textarea.value });
-            
+
             // Фокусируемся на текстовом поле
             textarea.focus();
           });
@@ -3165,7 +3196,7 @@ class DiagramView {
             this.model.updateElement(node.id, element.id, { url: imageUrl.value });
           });
         }
-        
+
         const imageCaption = form.querySelector('#element-image-caption');
         if (imageCaption) {
           imageCaption.addEventListener('input', () => {
@@ -3180,7 +3211,7 @@ class DiagramView {
             this.model.updateElement(node.id, element.id, { url: audioUrl.value });
           });
         }
-        
+
         const audioCaption = form.querySelector('#element-audio-caption');
         if (audioCaption) {
           audioCaption.addEventListener('input', () => {
@@ -3195,7 +3226,7 @@ class DiagramView {
             this.model.updateElement(node.id, element.id, { url: videoUrl.value });
           });
         }
-        
+
         const videoCaption = form.querySelector('#element-video-caption');
         if (videoCaption) {
           videoCaption.addEventListener('input', () => {
@@ -3207,13 +3238,13 @@ class DiagramView {
         const questionInput = form.querySelector('#element-choice-question');
         if (questionInput) {
           questionInput.addEventListener('input', () => {
-            this.model.updateElement(node.id, element.id, { 
+            this.model.updateElement(node.id, element.id, {
               question: questionInput.value,
-              options: element.data.options 
+              options: element.data.options
             });
           });
         }
-        
+
         // Обработчики для вариантов ответа
         const optionInputs = form.querySelectorAll('.choice-option');
         optionInputs.forEach(input => {
@@ -3221,14 +3252,14 @@ class DiagramView {
             const options = [...element.data.options];
             const index = parseInt(input.dataset.index);
             options[index] = input.value;
-            
-            this.model.updateElement(node.id, element.id, { 
+
+            this.model.updateElement(node.id, element.id, {
               question: element.data.question,
-              options: options 
+              options: options
             });
           });
         });
-        
+
         // Кнопки удаления вариантов
         const removeButtons = form.querySelectorAll('.remove-option');
         removeButtons.forEach(button => {
@@ -3236,31 +3267,31 @@ class DiagramView {
             const options = [...element.data.options];
             const index = parseInt(button.dataset.index);
             options.splice(index, 1);
-            
-            this.model.updateElement(node.id, element.id, { 
+
+            this.model.updateElement(node.id, element.id, {
               question: element.data.question,
-              options: options 
+              options: options
             });
           });
         });
-        
+
         // Кнопка добавления варианта
         const addButton = form.querySelector('#add-option');
         if (addButton) {
           addButton.addEventListener('click', () => {
             const options = [...(element.data.options || [])];
             options.push(`Вариант ${options.length + 1}`);
-            
-            this.model.updateElement(node.id, element.id, { 
+
+            this.model.updateElement(node.id, element.id, {
               question: element.data.question || 'Выберите вариант:',
-              options: options 
+              options: options
             });
           });
         }
         break;
     }
   }
-  
+
   /**
    * Обновление формы свойств соединения
    * @param {Object} connection - Данные соединения
@@ -3268,12 +3299,12 @@ class DiagramView {
   updateConnectionPropertiesForm(connection) {
     const sourceNode = this.model.getNodeById(connection.source);
     const targetNode = this.model.getNodeById(connection.target);
-    
+
     if (!sourceNode || !targetNode) return;
-    
+
     const form = document.createElement('div');
     form.className = 'properties-form';
-    
+
     // Предварительный просмотр соединения
     const preview = document.createElement('div');
     preview.className = 'properties-preview';
@@ -3292,7 +3323,7 @@ class DiagramView {
         </div>
       </div>
     `;
-    
+
     // Основная информация
     const infoSection = document.createElement('div');
     infoSection.className = 'properties-section';
@@ -3307,7 +3338,7 @@ class DiagramView {
         <input type="text" class="form-control" value="${targetNode.title}" disabled>
       </div>
     `;
-    
+
     // Настройки переходов
     const transitionSection = document.createElement('div');
     transitionSection.className = 'properties-section';
@@ -3330,57 +3361,32 @@ class DiagramView {
         <textarea id="condition-expression" class="form-control" rows="3">${connection.conditionExpression || ''}</textarea>
       </div>
     `;
-    
+
     // Добавляем секции в форму
     const propertiesContent = this.propertiesPanel.querySelector('.properties-panel-body');
-    propertiesContent.innerHTML = '';
-    propertiesContent.appendChild(preview);
-    propertiesContent.appendChild(form);
-    form.appendChild(infoSection);
-    form.appendChild(transitionSection);
-    
-    // Добавляем обработчики
-    const transitionCondition = form.querySelector('#transition-condition');
-    const conditionVariableContainer = form.querySelector('#condition-variable-container');
-    const conditionExpressionContainer = form.querySelector('#condition-expression-container');
-    
-    if (transitionCondition) {
-      transitionCondition.addEventListener('change', () => {
-        const condition = transitionCondition.value;
-        
-        // Обновляем видимость контейнеров
-        conditionVariableContainer.style.display = condition === 'variable' ? 'block' : 'none';
-        conditionExpressionContainer.style.display = condition === 'custom' ? 'block' : 'none';
-        
-        // Обновляем данные соединения
-        const updatedConnection = { condition };
-        this.model.updateConnection(connection.id, updatedConnection);
-      });
-    }
-    
     const conditionVariable = form.querySelector('#condition-variable');
     if (conditionVariable) {
       conditionVariable.addEventListener('input', () => {
         this.model.updateConnection(connection.id, { conditionVariable: conditionVariable.value });
       });
     }
-    
+
     const conditionExpression = form.querySelector('#condition-expression');
     if (conditionExpression) {
       conditionExpression.addEventListener('input', () => {
         this.model.updateConnection(connection.id, { conditionExpression: conditionExpression.value });
       });
     }
-    
+
     // Обновляем кнопки на панели
     const deleteButton = this.propertiesPanel.querySelector('#delete-element');
     const duplicateButton = this.propertiesPanel.querySelector('#duplicate-element');
-    
+
     if (deleteButton) {
       deleteButton.innerText = 'Удалить соединение';
       deleteButton.onclick = () => this.model.removeConnection(connection.id);
     }
-    
+
     if (duplicateButton) {
       duplicateButton.style.display = 'none'; // Скрываем кнопку дублирования для соединений
     }
@@ -3393,27 +3399,27 @@ class DiagramView {
 document.addEventListener('DOMContentLoaded', () => {
   // Создаем модель данных
   const model = new DiagramModel();
-  
+
   // Создаем контроллер
   const controller = new DiagramController(model);
-  
+
   // Создаем представление
   const view = new DiagramView(model, controller);
-  
+
   // Устанавливаем представление в контроллер
   controller.setView(view);
-  
+
   // Создаем менеджер подсказок
   const tooltipManager = new TooltipManager();
-  
+
   // Загружаем сохраненные данные
   controller.loadProject();
-  
+
   // Если нет данных, добавляем начальный узел
   if (model.nodes.length === 0) {
     model.addNode(CONSTANTS.NODE.TYPES.START, { x: 300, y: 150 });
   }
-  
+
   // Рендерим диаграмму
   view.render();
 });
