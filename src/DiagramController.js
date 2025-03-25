@@ -156,12 +156,39 @@ export class DiagramController {
   }
 
   /**
-   * Обработчик нажатия кнопки мыши
+   * Установка активного инструмента
+   * @param {string} tool - Название инструмента
+   */
+  setActiveTool(tool) {
+    this.activeTool = tool;
+
+    // Обновляем поведение мыши в соответствии с активным инструментом
+    if (tool === 'pan') {
+      // Режим перемещения холста - левая кнопка мыши теперь панорамирует
+      this.isPanMode = true;
+    } else {
+      this.isPanMode = false;
+    }
+  }
+
+  /**
+   * Модифицированный обработчик нажатия кнопки мыши
    * @param {MouseEvent} e - Событие мыши
    */
   handleMouseDown(e) {
     const canvas = document.getElementById('canvas');
 
+    // В режиме перемещения холста, обрабатываем левую кнопку мыши как перетаскивание
+    if (this.activeTool === 'pan' && e.button === 0) {
+      this.canvasState.isDragging = true;
+      this.canvasState.dragStartClientPos = { x: e.clientX, y: e.clientY };
+      canvas.classList.add('dragging');
+      document.body.style.cursor = 'grabbing';
+      e.preventDefault();
+      return;
+    }
+
+    // Стандартное поведение для других инструментов
     if (e.button === 2) {
       // Правая кнопка мыши - перетаскивание холста
       this.canvasState.isDragging = true;
@@ -169,12 +196,10 @@ export class DiagramController {
       canvas.classList.add('dragging');
       document.body.style.cursor = 'grabbing';
       e.preventDefault();
-
     } else if (e.target === canvas) {
       // Клик по пустой области холста - сброс выделения
       this.model.setSelectedNode(null);
       this.hidePropertiesPanel();
-
     } else {
       // Проверка на клик по узлу или элементам узла
       const nodeElement = e.target.closest('.node');
@@ -191,7 +216,10 @@ export class DiagramController {
 
           // Клик по порту - начало создания соединения
         } else if (e.target.classList.contains('node-port')) {
-          this.startConnectionCreation(e, nodeId);
+          // В режиме создания соединений, только порты разрешены
+          if (this.activeTool === 'connect' || e.target.classList.contains('node-port-out')) {
+            this.startConnectionCreation(e, nodeId);
+          }
 
           // Клик по элементу узла - выделение элемента
         } else if (e.target.closest('.node-element')) {

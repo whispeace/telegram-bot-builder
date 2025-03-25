@@ -817,6 +817,166 @@ textarea.form-control {
   display: none;
 }
 
+/* Расширенная панель инструментов */
+.toolbar-container {
+  position: absolute;
+  right: 16px;
+  bottom: 16px;
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+  z-index: 50;
+}
+
+.toolbar-group {
+  display: flex;
+  flex-direction: column;
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-medium);
+  padding: 4px;
+  gap: 2px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.toolbar-button {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: transparent;
+  border: none;
+  border-radius: var(--radius-small);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.toolbar-button:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+  color: var(--text-primary);
+}
+
+.toolbar-button.active {
+  background-color: rgba(74, 107, 252, 0.1);
+  color: var(--accent-primary);
+}
+
+.toolbar-separator {
+  height: 1px;
+  background-color: var(--border-color);
+  margin: 4px 0;
+}
+
+.toolbar-tooltip {
+  position: absolute;
+  background-color: var(--bg-tertiary);
+  padding: 4px 8px;
+  border-radius: var(--radius-small);
+  font-size: 12px;
+  white-space: nowrap;
+  z-index: 1000;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+}
+
+.toolbar-button:hover + .toolbar-tooltip {
+  opacity: 1;
+}
+
+/* Контекстная панель инструментов - появляется при выделении элементов */
+.context-toolbar {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-medium);
+  padding: 6px;
+  gap: 4px;
+  z-index: 100;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  transform: translateY(10px);
+  opacity: 0;
+  transition: transform var(--transition-normal), opacity var(--transition-normal);
+  pointer-events: none;
+}
+
+.context-toolbar.visible {
+  transform: translateY(0);
+  opacity: 1;
+  pointer-events: all;
+}
+
+.node-contextmenu {
+  display: none;
+  position: absolute;
+  min-width: 160px;
+  z-index: 100;
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-medium);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  padding: 4px 0;
+}
+
+.contextmenu-item {
+  display: flex;
+  align-items: center;
+  padding: 8px 12px;
+  cursor: pointer;
+  font-size: 14px;
+  color: var(--text-primary);
+}
+
+.contextmenu-item:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+.contextmenu-item .icon {
+  margin-right: 8px;
+  width: 16px;
+  height: 16px;
+}
+
+.contextmenu-separator {
+  height: 1px;
+  background-color: var(--border-color);
+  margin: 4px 0;
+}
+
+/* Индикатор выравнивания при множественном выделении */
+.align-indicator {
+  position: absolute;
+  background-color: var(--accent-primary);
+  transition: all var(--transition-fast);
+  pointer-events: none;
+  z-index: 49;
+}
+
+.align-indicator.horizontal {
+  height: 1px;
+  left: 0;
+  right: 0;
+}
+
+.align-indicator.vertical {
+  width: 1px;
+  top: 0;
+  bottom: 0;
+}
+
+/* Область множественного выделения */
+.selection-area {
+  position: absolute;
+  border: 1px dashed var(--accent-primary);
+  background-color: rgba(74, 107, 252, 0.1);
+  pointer-events: none;
+  z-index: 49;
+}
+
 /* Анимация для всех интерактивных элементов */
 @keyframes pulse {
   0% {
