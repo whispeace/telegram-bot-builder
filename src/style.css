@@ -1005,13 +1005,32 @@ textarea.form-control {
   bottom: 0;
 }
 
-/* Область множественного выделения */
+/* Область множественного выделения (лассо) */
 .selection-area {
   position: absolute;
   border: 1px dashed var(--accent-primary);
   background-color: rgba(74, 107, 252, 0.1);
   pointer-events: none;
   z-index: 49;
+}
+
+/* Стиль для выделенных узлов в группе */
+.node.selected {
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 2px rgba(74, 107, 252, 0.25);
+}
+
+/* Дополнительное выделение для активного узла в группе */
+.node.selected.active {
+  box-shadow: 0 0 0 3px rgba(74, 107, 252, 0.4);
+}
+
+/* Стиль для полноблочных кнопок в панели свойств */
+.btn-block {
+  display: block;
+  width: 100%;
+  margin-bottom: 8px;
+  text-align: center;
 }
 
 /* Анимация для всех интерактивных элементов */

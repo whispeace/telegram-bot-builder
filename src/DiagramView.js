@@ -21,6 +21,9 @@ export class DiagramView {
 
     // Инициализация
     this.initModelListeners();
+
+    // Элемент для области выделения
+    this.selectionAreaElement = null;
   }
 
   /**
@@ -180,7 +183,7 @@ export class DiagramView {
    * @param {Object} data - Данные события
    */
   handleSelectionChanged(data) {
-    // Обновляем выделение узлов
+    // Снимаем выделение со всех узлов
     document.querySelectorAll('.node.selected').forEach(node => {
       node.classList.remove('selected');
     });
@@ -1051,7 +1054,7 @@ export class DiagramView {
   }
 
   /**
-   * Обновление формы свойств узла
+   * Обновление панели свойств узла
    * @param {Object} node - Данные узла
    */
   updateNodePropertiesForm(node) {
@@ -1647,8 +1650,7 @@ export class DiagramView {
       </div>
     `;
 
-    // Настройки переходов
-    const transitionSection = document.createElement('div');
+    // Настройки переходов    const transitionSection = document.createElement('div');
     transitionSection.className = 'properties-section';
     transitionSection.innerHTML = `
       <h3 class="properties-section-title">Настройки перехода</h3>
@@ -1698,5 +1700,173 @@ export class DiagramView {
     if (duplicateButton) {
       duplicateButton.style.display = 'none'; // Скрываем кнопку дублирования для соединений
     }
+  }
+
+  // Создание области выделения
+  createSelectionArea(startPos, endPos) {
+    // Удаляем существующую область выделения, если есть
+    this.removeSelectionArea();
+
+    // Создаем новый элемент
+    this.selectionAreaElement = document.createElement('div');
+    this.selectionAreaElement.className = 'selection-area';
+
+    // Позиционируем и добавляем на холст
+    this.updateSelectionAreaPosition(startPos, endPos);
+    this.canvas.appendChild(this.selectionAreaElement);
+  }
+
+  // Обновление позиции области выделения
+  updateSelectionArea(startPos, endPos) {
+    if (this.selectionAreaElement) {
+      this.updateSelectionAreaPosition(startPos, endPos);
+    }
+  }
+
+  // Вспомогательный метод для позиционирования области выделения
+  updateSelectionAreaPosition(startPos, endPos) {
+    if (!this.selectionAreaElement) return;
+
+    // Вычисляем параметры прямоугольника
+    const left = Math.min(startPos.x, endPos.x);
+    const top = Math.min(startPos.y, endPos.y);
+    const width = Math.abs(endPos.x - startPos.x);
+    const height = Math.abs(endPos.y - startPos.y);
+
+    // Устанавливаем стили
+    this.selectionAreaElement.style.left = `${left}px`;
+    this.selectionAreaElement.style.top = `${top}px`;
+    this.selectionAreaElement.style.width = `${width}px`;
+    this.selectionAreaElement.style.height = `${height}px`;
+  }
+
+  // Удаление области выделения
+  removeSelectionArea() {
+    if (this.selectionAreaElement && this.selectionAreaElement.parentNode) {
+      this.selectionAreaElement.parentNode.removeChild(this.selectionAreaElement);
+      this.selectionAreaElement = null;
+    }
+  }
+
+  // Обновляем метод handleSelectionChanged для поддержки множественного выделения
+  handleSelectionChanged(data) {
+    // Снимаем выделение со всех узлов
+    document.querySelectorAll('.node.selected').forEach(node => {
+      node.classList.remove('selected');
+    });
+
+    // Если это множественное выделение узлов
+    if (data.type === 'nodes' && data.nodeIds) {
+      // Выделяем все узлы из списка
+      data.nodeIds.forEach(nodeId => {
+        const nodeElement = document.getElementById(nodeId);
+        if (nodeElement) {
+          nodeElement.classList.add('selected');
+        }
+      });
+
+      // Если есть основной узел, показываем для него панель свойств
+      if (data.primaryNodeId) {
+        this.updatePropertiesPanel(data.primaryNodeId);
+      } else {
+        // Показываем групповую панель свойств
+        this.updateGroupPropertiesPanel(data.nodeIds);
+      }
+    } else {
+      // Обработка других типов выделения (одиночное, элемент, соединение)
+      // Обновляем выделение соединений
+      document.querySelectorAll('.connection.selected').forEach(connection => {
+        connection.classList.remove('selected');
+      });
+
+      // Обновляем выделение элементов
+      document.querySelectorAll('.node-element.selected').forEach(element => {
+        element.classList.remove('selected');
+      });
+
+      // Устанавливаем новое выделение
+      if (data.type === 'node' && data.nodeId) {
+        const nodeElement = document.getElementById(data.nodeId);
+        if (nodeElement) {
+          nodeElement.classList.add('selected');
+        }
+      } else if (data.type === 'element' && data.nodeId && data.elementId) {
+        const nodeElement = document.getElementById(data.nodeId);
+        if (nodeElement) {
+          nodeElement.classList.add('selected');
+
+          const elementElement = nodeElement.querySelector(`.node-element[data-element-id="${data.elementId}"]`);
+          if (elementElement) {
+            elementElement.classList.add('selected');
+          }
+        }
+      } else if (data.type === 'connection' && data.connectionId) {
+        const connectionElement = document.getElementById(data.connectionId);
+        if (connectionElement) {
+          connectionElement.classList.add('selected');
+        }
+      }
+
+      // Обновляем панель свойств
+      this.updatePropertiesPanel();
+
+      this.scheduleUpdate();
+    }
+  }
+
+  // Метод для отображения панели свойств для группы узлов
+  updateGroupPropertiesPanel(nodeIds) {
+    if (!this.propertiesPanel) return;
+
+    // Заголовок панели
+    const propertiesTitle = this.propertiesPanel.querySelector('.properties-title');
+    const propertiesIcon = this.propertiesPanel.querySelector('.properties-icon');
+    const propertiesContent = this.propertiesPanel.querySelector('.properties-panel-body');
+
+    if (!propertiesTitle || !propertiesIcon || !propertiesContent) return;
+
+    // Устанавливаем заголовок с количеством выделенных узлов
+    propertiesTitle.querySelector('span').textContent = `Выделено узлов: ${nodeIds.length}`;
+
+    // Иконка для группы
+    propertiesIcon.innerHTML = `
+      <svg class="icon" viewBox="0 0 24 24">
+        <path d="M3 5v4h2V5h4V3H5c-1.1 0-2 .9-2 2zm2 10H3v4c0 1.1.9 2 2 2h4v-2H5v-4zm14 4h-4v2h4c1.1 0 2-.9 2-2v-4h-2v4zm0-16h-4v2h4v4h2V5c0-1.1-.9-2-2-2z"></path>
+      </svg>
+    `;
+
+    // Создаем содержимое для группы узлов
+    propertiesContent.innerHTML = `
+      <div class="properties-preview">
+        <div style="text-align: center; color: var(--text-secondary);">
+          <svg class="icon" viewBox="0 0 24 24" style="width: 36px; height: 36px; margin-bottom: 12px;">
+            <path d="M3 5v4h2V5h4V3H5c-1.1 0-2 .9-2 2zm2 10H3v4c0 1.1.9 2 2 2h4v-2H5v-4zm14 4h-4v2h4c1.1 0 2-.9 2-2v-4h-2v4zm0-16h-4v2h4v4h2V5c0-1.1-.9-2-2-2z"></path>
+          </svg>
+          <div>Групповое выделение</div>
+        </div>
+      </div>
+
+      <div class="properties-form">
+        <div class="properties-section">
+          <h3 class="properties-section-title">Групповые операции</h3>
+          <button id="align-left-group" class="btn btn-secondary btn-block">Выровнять по левому краю</button>
+          <button id="align-center-group" class="btn btn-secondary btn-block">Выровнять по центру</button>
+          <button id="align-right-group" class="btn btn-secondary btn-block">Выровнять по правому краю</button>
+          <button id="align-top-group" class="btn btn-secondary btn-block">Выровнять по верхнему краю</button>
+          <button id="align-middle-group" class="btn btn-secondary btn-block">Выровнять по середине</button>
+          <button id="align-bottom-group" class="btn btn-secondary btn-block">Выровнять по нижнему краю</button>
+          <button id="distribute-horizontal-group" class="btn btn-secondary btn-block">Распределить по горизонтали</button>
+          <button id="distribute-vertical-group" class="btn btn-secondary btn-block">Распределить по вертикали</button>
+        </div>
+      </div>
+    `;
+
+    // Добавляем обработчики для групповых операций
+    const alignLeftBtn = document.getElementById('align-left-group');
+    if (alignLeftBtn) {
+      alignLeftBtn.addEventListener('click', () => this.controller.alignSelectedNodes('left'));
+    }
+
+    // Другие обработчики для кнопок...
   }
 }

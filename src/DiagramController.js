@@ -34,7 +34,14 @@ export class DiagramController {
       activeSnap: null
     };
 
-    // Обработчики событий мыши с привязкой контекста
+    // Состояние множественного выделения
+    this.multiSelectState = {
+      isActive: false,
+      startPos: { x: 0, y: 0 },
+      endPos: { x: 0, y: 0 }
+    };
+
+    // Привязка обработчиков событий
     this.handleMouseDown = this.handleMouseDown.bind(this);
     this.handleMouseMove = this.handleMouseMove.bind(this);
     this.handleMouseUp = this.handleMouseUp.bind(this);
@@ -259,6 +266,10 @@ export class DiagramController {
    * @param {string} nodeId - ID узла
    */
   startNodeDrag(e, nodeId) {
+    if (!this.model.selectedNodeIds.has(nodeId) && !e.shiftKey && !e.ctrlKey) {
+      this.model.toggleNodeSelection(nodeId, true);
+    }
+
     const node = this.model.getNodeById(nodeId);
     if (!node) return;
 
@@ -409,6 +420,19 @@ export class DiagramController {
 
       this.model.updatePendingConnection({ x, y });
     }
+
+    if (this.multiSelectState.isActive) {
+      const canvasRect = this.canvas.getBoundingClientRect();
+      this.multiSelectState.endPos = {
+        x: (e.clientX - canvasRect.left) / this.canvasState.scale + this.canvasState.position.x,
+        y: (e.clientY - canvasRect.top) / this.canvasState.scale + this.canvasState.position.y
+      };
+
+      this.view.updateSelectionArea(
+        this.multiSelectState.startPos,
+        this.multiSelectState.endPos
+      );
+    }
   }
 
   /**
@@ -488,6 +512,10 @@ export class DiagramController {
     document.querySelectorAll('.alignment-guide').forEach(guide => guide.remove());
     this.guidesState.guides = [];
     this.guidesState.activeSnap = null;
+
+    if (this.multiSelectState.isActive) {
+      this.handleMultiSelectEnd();
+    }
   }
 
   /**
@@ -730,8 +758,51 @@ export class DiagramController {
       this.redo();
     }
 
-    // Delete - удаление выбранного элемента
-    if (e.key === 'Delete') {
+    // Ctrl+A - выделить все узлы
+    if (e.ctrlKey && e.key === 'a') {
+      console.log('Ctrl+A pressed');
+      
+      e.preventDefault();
+
+      // Выделяем все узлы
+      this.model.selectedNodeIds.clear();
+      this.model.nodes.forEach(node => {
+        this.model.selectedNodeIds.add(node.id);
+      });
+
+      // Устанавливаем последний узел как текущий для панели свойств
+      if (this.model.nodes.length > 0) {
+        this.model.selectedNodeId = this.model.nodes[this.model.nodes.length - 1].id;
+      }
+
+      // Публикуем событие изменения выделения
+      this.model.publish('onSelectionChanged', {
+        type: 'nodes',
+        nodeIds: Array.from(this.model.selectedNodeIds),
+        primaryNodeId: this.model.selectedNodeId
+      });
+    }
+
+    // Escape - отмена лассо-выделения
+    if (e.key === 'Escape') {
+      if (this.multiSelectState.isActive) {
+        this.multiSelectState.isActive = false;
+        this.view.removeSelectionArea();
+        return;
+      }
+
+      // Сброс выделения
+      this.model.setSelectedNode(null);
+      this.hidePropertiesPanel();
+    }
+
+    // Delete или Backspace - удаление всех выделенных узлов
+    if (e.key === 'Delete' || e.key === 'Backspace') {
+      if (this.model.selectedNodeIds.size > 0) {
+        this.model.removeSelectedNodes();
+        return;
+      }
+
       if (this.model.selectedNodeId) {
         if (this.model.selectedElementId) {
           // Удаление элемента узла
@@ -1166,6 +1237,156 @@ export class DiagramController {
     } catch (e) {
       console.error('Ошибка загрузки состояния холста', e);
       this.showNotification('Ошибка загрузки состояния холста', 'error');
+    }
+  }
+
+  // Обработчик начала выделения области
+  handleMultiSelectStart(e) {
+    if ((e.shiftKey || e.ctrlKey) && e.button === 0 && e.target === this.canvas) {
+      this.multiSelectState.isActive = true;
+
+      const canvasRect = this.canvas.getBoundingClientRect();
+      this.multiSelectState.startPos = {
+        x: (e.clientX - canvasRect.left) / this.canvasState.scale + this.canvasState.position.x,
+        y: (e.clientY - canvasRect.top) / this.canvasState.scale + this.canvasState.position.y
+      };
+      this.multiSelectState.endPos = { ...this.multiSelectState.startPos };
+
+      this.view.createSelectionArea(
+        this.multiSelectState.startPos,
+        this.multiSelectState.endPos
+      );
+
+      e.preventDefault();
+      e.stopPropagation();
+    }
+  }
+
+  handleMouseUp(e) {
+    const canvas = document.getElementById('canvas');
+
+    // Завершение перетаскивания холста
+    if (this.canvasState.isDragging) {
+      this.canvasState.isDragging = false;
+      canvas.classList.remove('dragging');
+      document.body.style.cursor = 'default';
+    }
+
+
+    // Завершение перетаскивания узла
+    else if (this.nodeDragState.isDragging) {
+      const nodeElement = document.getElementById(this.nodeDragState.nodeId);
+      const ghostNode = document.getElementById(this.nodeDragState.ghostId);
+
+      if (nodeElement && ghostNode) {
+        // Получаем итоговую позицию из элемента-призрака
+        const finalX = parseInt(ghostNode.style.left);
+        const finalY = parseInt(ghostNode.style.top);
+
+        // Удаляем призрак
+        console.log(ghostNode);
+
+        ghostNode.remove();
+
+        // Обновляем реальную позицию узла с анимацией
+        nodeElement.style.transition = 'transform 0.2s ease-out';
+        this.updateNodePosition(this.nodeDragState.nodeId, { x: finalX, y: finalY });
+
+        // Сбрасываем transition после анимации
+        setTimeout(() => {
+          if (nodeElement) {
+            nodeElement.style.transition = '';
+            nodeElement.classList.remove('dragging');
+          }
+        }, 200);
+      }
+
+      this.nodeDragState.isDragging = false;
+      document.body.style.cursor = 'default';
+    }
+
+
+    // Завершение создания соединения
+    else if (this.model.pendingConnection) {
+      // Ищем узел под курсором
+      const elementUnderCursor = document.elementFromPoint(e.clientX, e.clientY);
+      if (elementUnderCursor) {
+        const targetNodeElement = elementUnderCursor.closest('.node');
+        if (targetNodeElement) {
+          const targetNodeId = targetNodeElement.id;
+
+          // Завершаем создание соединения
+          this.model.completePendingConnection(targetNodeId);
+        } else {
+          // Отменяем создание соединения, если не попали по узлу
+          this.model.cancelPendingConnection();
+        }
+      } else {
+        this.model.cancelPendingConnection();
+      }
+
+      // Удаляем класс активности у всех портов
+      document.querySelectorAll('.node-port.active').forEach(port => {
+        port.classList.remove('active');
+      });
+    }
+
+    // Удаляем все направляющие
+    document.querySelectorAll('.alignment-guide').forEach(guide => guide.remove());
+    this.guidesState.guides = [];
+    this.guidesState.activeSnap = null;
+
+    if (this.multiSelectState.isActive) {
+      this.handleMultiSelectEnd();
+    }
+  }
+
+  handleMultiSelectEnd() {
+    if (this.multiSelectState.isActive) {
+      const normalizedArea = this.normalizeSelectionArea(
+        this.multiSelectState.startPos,
+        this.multiSelectState.endPos
+      );
+
+      this.model.selectNodesInArea(normalizedArea, event.shiftKey);
+
+      this.multiSelectState.isActive = false;
+      this.view.removeSelectionArea();
+    }
+  }
+
+  normalizeSelectionArea(startPos, endPos) {
+    return {
+      startPos: {
+        x: Math.min(startPos.x, endPos.x),
+        y: Math.min(startPos.y, endPos.y)
+      },
+      endPos: {
+        x: Math.max(startPos.x, endPos.x),
+        y: Math.max(startPos.y, endPos.y)
+      }
+    };
+  }
+
+  handleNodeClick(nodeId, e) {
+    if (e.shiftKey || e.ctrlKey) {
+      this.model.toggleNodeSelection(nodeId, false);
+    } else {
+      this.model.toggleNodeSelection(nodeId, true);
+    }
+
+    this.showPropertiesPanel();
+  }
+
+  handleNodeMove(deltaX, deltaY) {
+    if (this.model.selectedNodeIds.size > 1) {
+      this.model.moveSelectedNodes(deltaX, deltaY);
+    } else {
+      const nodeId = this.model.selectedNodeIds.values().next().value;
+      const node = this.model.getNodeById(nodeId);
+      if (node) {
+        this.model.moveNode(nodeId, deltaX, deltaY);
+      }
     }
   }
 }

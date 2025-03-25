@@ -11,7 +11,8 @@ export class DiagramModel {
     this.nextId = 1;
 
     // Состояние выделения
-    this.selectedNodeId = null;
+    this.selectedNodeIds = new Set(); // Множество для хранения ID выделенных узлов
+    this.selectedNodeId = null; // Сохраняем для обратной совместимости
     this.selectedElementId = null;
     this.selectedConnectionId = null;
 
@@ -36,6 +37,9 @@ export class DiagramModel {
     this.history = [];
     this.historyIndex = -1;
     this.isRecordingHistory = true;
+
+    // Добавляем групповые свойства
+    this.groupOperationsEnabled = true;
   }
 
   /**
@@ -86,6 +90,7 @@ export class DiagramModel {
     const state = {
       nodes: JSON.parse(JSON.stringify(this.nodes)),
       connections: JSON.parse(JSON.stringify(this.connections)),
+      selectedNodeIds: Array.from(this.selectedNodeIds),
       selectedNodeId: this.selectedNodeId,
       selectedElementId: this.selectedElementId,
       selectedConnectionId: this.selectedConnectionId
@@ -138,6 +143,7 @@ export class DiagramModel {
     this.connections = state.connections;
 
     // Восстанавливаем выделение
+    this.selectedNodeIds = new Set(state.selectedNodeIds);
     this.selectedNodeId = state.selectedNodeId;
     this.selectedElementId = state.selectedElementId;
     this.selectedConnectionId = state.selectedConnectionId;
@@ -458,9 +464,9 @@ export class DiagramModel {
    * @param {string|null} nodeId - ID узла или null
    */
   setSelectedNode(nodeId) {
+    this.selectedNodeIds.clear();
+    this.selectedNodeIds.add(nodeId);
     this.selectedNodeId = nodeId;
-    this.selectedElementId = null;
-    this.selectedConnectionId = null;
 
     // Публикуем событие изменения выделения
     this.publish('onSelectionChanged', {
@@ -572,6 +578,7 @@ export class DiagramModel {
     // Очищаем текущие данные
     this.nodes = [];
     this.connections = [];
+    this.selectedNodeIds.clear();
     this.selectedNodeId = null;
     this.selectedElementId = null;
     this.selectedConnectionId = null;
@@ -607,5 +614,145 @@ export class DiagramModel {
 
     // Публикуем событие импорта данных
     this.publish('onStateChanged', { type: 'dataImported' });
+  }
+
+  // Новый метод для работы с множественным выделением
+  toggleNodeSelection(nodeId, exclusive = false) {
+    // Если exclusive, снимаем текущее выделение
+    if (exclusive) {
+      this.selectedNodeIds.clear();
+    }
+
+    // Переключаем выделение узла
+    if (this.selectedNodeIds.has(nodeId)) {
+      this.selectedNodeIds.delete(nodeId);
+      if (this.selectedNodeId === nodeId) {
+        this.selectedNodeId = null;
+      }
+    } else {
+      this.selectedNodeIds.add(nodeId);
+      this.selectedNodeId = nodeId; // Последний выделенный становится активным для свойств
+    }
+
+    // Сбрасываем выделение элемента и соединения
+    this.selectedElementId = null;
+    this.selectedConnectionId = null;
+
+    // Публикуем событие изменения выделения
+    this.publish('onSelectionChanged', {
+      type: 'nodes',
+      nodeIds: Array.from(this.selectedNodeIds),
+      primaryNodeId: this.selectedNodeId
+    });
+
+    this.recordHistory();
+  }
+
+  // Добавление метода для выделения узлов в заданной области
+  selectNodesInArea(area, addToSelection = false) {
+    // Если не добавляем к текущему выделению, очищаем его
+    if (!addToSelection) {
+      this.selectedNodeIds.clear();
+    }
+
+    // Проверяем каждый узел на попадание в область выделения
+    this.nodes.forEach(node => {
+      const nodeRight = node.position.x + CONSTANTS.NODE.DEFAULT_WIDTH;
+      const nodeBottom = node.position.y + CONSTANTS.NODE.DEFAULT_HEIGHT;
+
+      // Проверка пересечения с областью выделения
+      if (
+        node.position.x < area.endPos.x &&
+        nodeRight > area.startPos.x &&
+        node.position.y < area.endPos.y &&
+        nodeBottom > area.startPos.y
+      ) {
+        this.selectedNodeIds.add(node.id);
+        this.selectedNodeId = node.id; // Последний выделенный
+      }
+    });
+
+    // Публикуем событие
+    this.publish('onSelectionChanged', {
+      type: 'nodes',
+      nodeIds: Array.from(this.selectedNodeIds),
+      primaryNodeId: this.selectedNodeId
+    });
+
+    this.recordHistory();
+  }
+
+  // Метод для получения всех выделенных узлов
+  getSelectedNodes() {
+    return this.nodes.filter(node => this.selectedNodeIds.has(node.id));
+  }
+
+  // Групповые операции
+  // Перемещение группы узлов
+  moveSelectedNodes(deltaX, deltaY) {
+    const selectedNodes = this.getSelectedNodes();
+
+    selectedNodes.forEach(node => {
+      this.updateNode(node.id, {
+        position: {
+          x: node.position.x + deltaX,
+          y: node.position.y + deltaY
+        }
+      });
+    });
+  }
+
+  // Удаление выделенных узлов
+  removeSelectedNodes() {
+    const nodesToRemove = Array.from(this.selectedNodeIds);
+
+    nodesToRemove.forEach(nodeId => {
+      this.removeNode(nodeId);
+    });
+
+    this.selectedNodeIds.clear();
+    this.selectedNodeId = null;
+
+    this.publish('onSelectionChanged', {
+      type: 'nodes',
+      nodeIds: [],
+      primaryNodeId: null
+    });
+
+    this.recordHistory();
+  }
+
+  // Дублирование выделенных узлов
+  duplicateSelectedNodes() {
+    const selectedNodes = this.getSelectedNodes();
+    const newNodeIds = new Set();
+
+    // Сначала очищаем текущее выделение
+    this.selectedNodeIds.clear();
+
+    // Создаем копии всех выделенных узлов
+    selectedNodes.forEach(node => {
+      const newNodeId = this.duplicateNode(node.id);
+      if (newNodeId) {
+        newNodeIds.add(newNodeId);
+        this.selectedNodeIds.add(newNodeId);
+      }
+    });
+
+    // Устанавливаем последний созданный узел как текущий
+    const newNodesArray = Array.from(newNodeIds);
+    if (newNodesArray.length > 0) {
+      this.selectedNodeId = newNodesArray[newNodesArray.length - 1];
+    }
+
+    this.publish('onSelectionChanged', {
+      type: 'nodes',
+      nodeIds: Array.from(this.selectedNodeIds),
+      primaryNodeId: this.selectedNodeId
+    });
+
+    this.recordHistory();
+
+    return newNodeIds;
   }
 }

@@ -255,181 +255,117 @@ export class ToolbarManager {
    * @param {string} alignment - Тип выравнивания ('left', 'center-h', 'right', 'top', 'center-v', 'bottom')
    */
   alignNodes(alignment) {
-    // Получаем выделенные узлы
-    const selectedNodes = this.getSelectedNodes();
+    const selectedNodes = this.model.getSelectedNodes();
 
-    // Если выделен только один узел или ни одного, то ничего не делаем
-    if (selectedNodes.length <= 1) {
+    if (selectedNodes.length < 2) {
       this.controller.showNotification('Выделите несколько узлов для выравнивания', 'warning');
       return;
     }
 
-    // Копируем массив узлов для манипуляций
-    const nodes = [...selectedNodes];
-
-    // Находим опорный узел (первый выделенный)
-    const referenceNode = nodes[0];
-
-    // Выполняем выравнивание в зависимости от типа
+    let referenceValue;
     switch (alignment) {
       case 'left':
-        // Выравнивание по левому краю
-        const leftEdge = referenceNode.position.x;
-
-        // Обновляем позиции узлов
-        for (let i = 1; i < nodes.length; i++) {
-          const node = nodes[i];
-          const newPosition = {
-            x: leftEdge,
-            y: node.position.y
-          };
-          this.model.updateNode(node.id, { position: newPosition });
-        }
+        referenceValue = Math.min(...selectedNodes.map(node => node.position.x));
+        selectedNodes.forEach(node => {
+          this.model.updateNode(node.id, {
+            position: { x: referenceValue, y: node.position.y }
+          });
+        });
         break;
 
       case 'center-h':
-        // Выравнивание по центру по горизонтали
-        const centerX = referenceNode.position.x + CONSTANTS.NODE.DEFAULT_WIDTH / 2;
-
-        // Обновляем позиции узлов
-        for (let i = 1; i < nodes.length; i++) {
-          const node = nodes[i];
-          const newPosition = {
-            x: centerX - CONSTANTS.NODE.DEFAULT_WIDTH / 2,
-            y: node.position.y
-          };
-          this.model.updateNode(node.id, { position: newPosition });
-        }
+        const totalX = selectedNodes.reduce((sum, node) => sum + node.position.x + CONSTANTS.NODE.DEFAULT_WIDTH / 2, 0);
+        referenceValue = totalX / selectedNodes.length - CONSTANTS.NODE.DEFAULT_WIDTH / 2;
+        selectedNodes.forEach(node => {
+          this.model.updateNode(node.id, {
+            position: { x: referenceValue, y: node.position.y }
+          });
+        });
         break;
 
       case 'right':
-        // Выравнивание по правому краю
-        const rightEdge = referenceNode.position.x + CONSTANTS.NODE.DEFAULT_WIDTH;
-
-        // Обновляем позиции узлов
-        for (let i = 1; i < nodes.length; i++) {
-          const node = nodes[i];
-          const newPosition = {
-            x: rightEdge - CONSTANTS.NODE.DEFAULT_WIDTH,
-            y: node.position.y
-          };
-          this.model.updateNode(node.id, { position: newPosition });
-        }
+        referenceValue = Math.max(...selectedNodes.map(node => node.position.x));
+        selectedNodes.forEach(node => {
+          this.model.updateNode(node.id, {
+            position: { x: referenceValue, y: node.position.y }
+          });
+        });
         break;
 
       case 'top':
-        // Выравнивание по верхнему краю
-        const topEdge = referenceNode.position.y;
-
-        // Обновляем позиции узлов
-        for (let i = 1; i < nodes.length; i++) {
-          const node = nodes[i];
-          const newPosition = {
-            x: node.position.x,
-            y: topEdge
-          };
-          this.model.updateNode(node.id, { position: newPosition });
-        }
+        referenceValue = Math.min(...selectedNodes.map(node => node.position.y));
+        selectedNodes.forEach(node => {
+          this.model.updateNode(node.id, {
+            position: { x: node.position.x, y: referenceValue }
+          });
+        });
         break;
 
       case 'center-v':
-        // Выравнивание по центру по вертикали
-        const centerY = referenceNode.position.y + CONSTANTS.NODE.DEFAULT_HEIGHT / 2;
-
-        // Обновляем позиции узлов
-        for (let i = 1; i < nodes.length; i++) {
-          const node = nodes[i];
-          const newPosition = {
-            x: node.position.x,
-            y: centerY - CONSTANTS.NODE.DEFAULT_HEIGHT / 2
-          };
-          this.model.updateNode(node.id, { position: newPosition });
-        }
+        referenceValue = Math.max(...selectedNodes.map(node => node.position.y));
+        selectedNodes.forEach(node => {
+          this.model.updateNode(node.id, {
+            position: { x: node.position.x, y: referenceValue }
+          });
+        });
         break;
 
       case 'bottom':
-        // Выравнивание по нижнему краю
-        const bottomEdge = referenceNode.position.y + CONSTANTS.NODE.DEFAULT_HEIGHT;
-
-        // Обновляем позиции узлов
-        for (let i = 1; i < nodes.length; i++) {
-          const node = nodes[i];
-          const newPosition = {
-            x: node.position.x,
-            y: bottomEdge - CONSTANTS.NODE.DEFAULT_HEIGHT
-          };
-          this.model.updateNode(node.id, { position: newPosition });
-        }
+        referenceValue = Math.min(...selectedNodes.map(node => node.position.y));
+        selectedNodes.forEach(node => {
+          this.model.updateNode(node.id, {
+            position: { x: node.position.x, y: referenceValue }
+          });
+        });
         break;
     }
 
-    // Показываем уведомление об успешном выравнивании
-    this.controller.showNotification(`Узлы выровнены`, 'success');
+    this.controller.showNotification(`Узлы выровнены (${selectedNodes.length})`, 'success');
   }
 
   /**
-   * Распределение выделенных узлов равномерно
-   * @param {string} direction - Направление распределения ('horizontal', 'vertical')
+   * Распределение узлов равномерно
+   * @param {string} direction - Направление ('horizontal', 'vertical')
    */
   distributeNodes(direction) {
-    // Получаем выделенные узлы
-    const selectedNodes = this.getSelectedNodes();
+    const selectedNodes = this.model.getSelectedNodes();
 
-    // Если выделено менее трех узлов, то распределение не имеет смысла
     if (selectedNodes.length < 3) {
       this.controller.showNotification('Выделите минимум три узла для распределения', 'warning');
       return;
     }
 
-    // Копируем массив узлов для манипуляций
-    const nodes = [...selectedNodes];
-
-    // Сортируем узлы в зависимости от направления
     if (direction === 'horizontal') {
-      nodes.sort((a, b) => a.position.x - b.position.x);
-
-      // Находим крайние узлы
-      const firstNode = nodes[0];
-      const lastNode = nodes[nodes.length - 1];
-
-      // Вычисляем интервал между узлами
+      const sortedNodes = [...selectedNodes].sort((a, b) => a.position.x - b.position.x);
+      const firstNode = sortedNodes[0];
+      const lastNode = sortedNodes[sortedNodes.length - 1];
       const totalWidth = (lastNode.position.x + CONSTANTS.NODE.DEFAULT_WIDTH) - firstNode.position.x;
-      const interval = totalWidth / (nodes.length - 1);
+      const interval = totalWidth / (sortedNodes.length - 1);
 
-      // Распределяем узлы равномерно
-      for (let i = 1; i < nodes.length - 1; i++) {
-        const node = nodes[i];
-        const newPosition = {
-          x: firstNode.position.x + interval * i,
-          y: node.position.y
-        };
-        this.model.updateNode(node.id, { position: newPosition });
+      for (let i = 1; i < sortedNodes.length - 1; i++) {
+        const node = sortedNodes[i];
+        const newX = firstNode.position.x + interval * i;
+        this.model.updateNode(node.id, {
+          position: { x: newX, y: node.position.y }
+        });
       }
-
     } else if (direction === 'vertical') {
-      nodes.sort((a, b) => a.position.y - b.position.y);
-
-      // Находим крайние узлы
-      const firstNode = nodes[0];
-      const lastNode = nodes[nodes.length - 1];
-
-      // Вычисляем интервал между узлами
+      const sortedNodes = [...selectedNodes].sort((a, b) => a.position.y - b.position.y);
+      const firstNode = sortedNodes[0];
+      const lastNode = sortedNodes[sortedNodes.length - 1];
       const totalHeight = (lastNode.position.y + CONSTANTS.NODE.DEFAULT_HEIGHT) - firstNode.position.y;
-      const interval = totalHeight / (nodes.length - 1);
+      const interval = totalHeight / (sortedNodes.length - 1);
 
-      // Распределяем узлы равномерно
-      for (let i = 1; i < nodes.length - 1; i++) {
-        const node = nodes[i];
-        const newPosition = {
-          x: node.position.x,
-          y: firstNode.position.y + interval * i
-        };
-        this.model.updateNode(node.id, { position: newPosition });
+      for (let i = 1; i < sortedNodes.length - 1; i++) {
+        const node = sortedNodes[i];
+        const newY = firstNode.position.y + interval * i;
+        this.model.updateNode(node.id, {
+          position: { x: node.position.x, y: newY }
+        });
       }
     }
 
-    // Показываем уведомление об успешном распределении
-    this.controller.showNotification(`Узлы распределены равномерно`, 'success');
+    this.controller.showNotification(`Узлы распределены равномерно (${selectedNodes.length})`, 'success');
   }
 
   /**
@@ -437,18 +373,7 @@ export class ToolbarManager {
    * @returns {Array} Массив выделенных узлов
    */
   getSelectedNodes() {
-    // В текущей реализации у нас есть только один выделенный узел
-    // Будущая реализация должна поддерживать множественное выделение
-    const selectedNodes = [];
-
-    if (this.model.selectedNodeId) {
-      const node = this.model.getNodeById(this.model.selectedNodeId);
-      if (node) {
-        selectedNodes.push(node);
-      }
-    }
-
-    return selectedNodes;
+    return this.model.getSelectedNodes();
   }
 
   /**
