@@ -1,13 +1,12 @@
 /* Обновленная дизайн-система с унифицированными переменными */
 :root {
   /* Основная палитра */
-  --bg-primary: #121212;
-  --bg-secondary: #1a1a1a;
-  --bg-tertiary: #252525;
-  --text-primary: #ffffff;
-  --text-secondary: #b3b3b3;
-  --border-color: #333333;
-
+  --bg-primary: #f5f5f5;
+  --bg-secondary: #ffffff;
+  --bg-tertiary: #f0f0f0;
+  --text-primary: #333333;
+  --text-secondary: #666666;
+  --border-color: #dddddd;
   /* Акцентные цвета с согласованной насыщенностью */
   --accent-primary: #4a6bfc;
   --accent-secondary: #2d4bc9;
@@ -37,6 +36,20 @@
   --transition-slow: 0.35s ease;
 }
 
+
+/* Темная тема */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg-primary: #121212;
+    --bg-secondary: #1a1a1a;
+    --bg-tertiary: #252525;
+    --text-primary: #ffffff;
+    --text-secondary: #b3b3b3;
+    --border-color: #333333;
+  }
+}
+
+
 /* Базовые стили */
 * {
   margin: 0;
@@ -45,13 +58,18 @@
   font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
+/* Устанавливаем основной цвет фона и текста через CSS-переменные */
 body {
-  background-color: var(--bg-primary);
-  color: var(--text-primary);
-  overflow: hidden;
-  height: 100vh;
-  display: flex;
-  flex-direction: column;
+  background-color: var(--bg-primary); /* Основной цвет фона */
+  color: var(--text-primary); /* Основной цвет текста */
+
+  /* Отключаем прокрутку и задаем высоту экрана */
+  overflow: hidden; /* Скрываем прокрутку */
+  height: 100vh; /* Высота равна высоте окна браузера */
+
+  /* Используем flexbox для управления расположением дочерних элементов */
+  display: flex; /* Включаем flex-контейнер */
+  flex-direction: column; /* Располагаем элементы в колонку */
 }
 
 /* Унифицированные стили кнопок */
@@ -386,28 +404,42 @@ body {
   position: relative;
   overflow: hidden;
   background-color: var(--bg-primary);
-}
-
-.canvas {
-  position: absolute;
-  width: 5000px;
-  height: 5000px;
-  transform-origin: 0 0;
+  transform-origin: 50% 50%;
   background-color: var(--bg-primary);
   background-image:
     linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
     linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
   background-size: 20px 20px;
+  background-position: var(--bg-offset-x) var(--bg-offset-y);
 }
 
-.canvas.dragging {
-  cursor: grabbing;
+.canvas {
+  position: absolute;
+  /* Удаляем фиксированные размеры */
+  /* width: 5000px; */
+  /* height: 5000px; */
 }
 
-.canvas.dropzone-active {
-  background-image:
-    linear-gradient(rgba(74, 107, 252, 0.05) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(74, 107, 252, 0.05) 1px, transparent 1px);
+/* Добавить стили для бесконечного холста */
+.infinite-canvas {
+  position: absolute;
+  left: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  overflow: hidden;
+}
+
+/* Анимация инерции для холста */
+.canvas.with-inertia {
+  transition: transform 0.3s cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+/* Добавить стили для масштабирования с центром */
+.canvas-transform-origin {
+  position: absolute;
+  transform-origin: 0 0;
+  will-change: transform;
 }
 
 /* Узел */
@@ -598,13 +630,17 @@ body {
 
 /* Панель свойств */
 .properties-panel {
+  position: absolute;
   width: 320px;
+  right: 12px;
+  top: 62px;
+  bottom: 12px;
   background-color: var(--bg-secondary);
-  border-left: 1px solid var(--border-color);
   display: flex;
   flex-direction: column;
-  transform: translateX(100%);
+  transform: translateX(100%) translateX(24px);
   transition: transform var(--transition-normal);
+  border-radius: var(--radius-medium);
 }
 
 .properties-panel.visible {
@@ -702,7 +738,7 @@ textarea.form-control {
   gap: 8px;
 }
 
-/* Тултипы */
+/* Подсказки (tooltip) */
 .tooltip {
   position: fixed;
   background-color: var(--bg-tertiary);
@@ -720,8 +756,8 @@ textarea.form-control {
 /* Мини-карта */
 .minimap-container {
   position: absolute;
-  right: 16px;
-  bottom: 80px;
+  left: 272px;
+  bottom: 12px;
   width: 220px;
   height: 160px;
   background-color: var(--bg-secondary);
@@ -742,7 +778,7 @@ textarea.form-control {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 6px 8px;
+  padding: 0px 8px;
   background-color: var(--bg-tertiary);
   border-bottom: 1px solid var(--border-color);
 }
@@ -820,8 +856,9 @@ textarea.form-control {
 /* Расширенная панель инструментов */
 .toolbar-container {
   position: absolute;
-  right: 16px;
+  left: 50%;
   bottom: 16px;
+  transform: translateX(-50%);
   display: flex;
   flex-direction: row;
   gap: 8px;
@@ -830,7 +867,7 @@ textarea.form-control {
 
 .toolbar-group {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   background-color: var(--bg-secondary);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-medium);
@@ -1272,21 +1309,4 @@ textarea.form-control {
   z-index: 101;
   border: none;
   cursor: pointer;
-}
-
-/* Темная тема */
-@media (prefers-color-scheme: dark) {
-  :root {
-    /* Уже используем темную тему по умолчанию */
-  }
-}
-
-/* Светлая тема */
-.light-theme {
-  --bg-primary: #f5f5f5;
-  --bg-secondary: #ffffff;
-  --bg-tertiary: #f0f0f0;
-  --text-primary: #333333;
-  --text-secondary: #666666;
-  --border-color: #dddddd;
 }

@@ -56,6 +56,9 @@ export class DiagramController {
    */
   setView(view) {
     this.view = view;
+
+    // Обновляем представление при изменении состояния холста
+    this.view.onCanvasTransformChange = this.updateCanvasTransform.bind(this);
   }
 
   /**
@@ -74,12 +77,13 @@ export class DiagramController {
    */
   initDOMEventListeners() {
     const canvas = document.getElementById('canvas');
+    const canvasContainer = document.getElementById('canvas-container');
 
     // События мыши на холсте
-    canvas.addEventListener('mousedown', this.handleMouseDown);
-    canvas.addEventListener('mousemove', this.handleMouseMove);
-    canvas.addEventListener('mouseup', this.handleMouseUp);
-    canvas.addEventListener('wheel', this.handleWheel, { passive: false });
+    canvasContainer.addEventListener('mousedown', this.handleMouseDown);
+    canvasContainer.addEventListener('mousemove', this.handleMouseMove);
+    canvasContainer.addEventListener('mouseup', this.handleMouseUp);
+    canvasContainer.addEventListener('wheel', this.handleWheel, { passive: false });
 
     // Глобальные обработчики для завершения перетаскивания вне холста
     document.addEventListener('mousemove', this.handleMouseMove);
@@ -89,7 +93,7 @@ export class DiagramController {
     document.addEventListener('keydown', this.handleKeyDown);
 
     // Отключение контекстного меню браузера
-    canvas.addEventListener('contextmenu', e => e.preventDefault());
+    canvasContainer.addEventListener('contextmenu', e => e.preventDefault());
 
     // Drag-and-drop из боковой панели
     const draggableItems = document.querySelectorAll('[draggable="true"]');
@@ -97,8 +101,8 @@ export class DiagramController {
       item.addEventListener('dragstart', this.handleDragStart);
     });
 
-    canvas.addEventListener('dragover', this.handleDragOver);
-    canvas.addEventListener('drop', this.handleDrop);
+    canvasContainer.addEventListener('dragover', this.handleDragOver);
+    canvasContainer.addEventListener('drop', this.handleDrop);
   }
 
   /**
@@ -152,6 +156,18 @@ export class DiagramController {
 
     if (toggleGuidesBtn) {
       toggleGuidesBtn.addEventListener('click', this.toggleGuides.bind(this));
+    }
+
+    // Кнопка сохранения состояния холста
+    const saveCanvasButton = document.getElementById('btn-save-canvas');
+    if (saveCanvasButton) {
+      saveCanvasButton.addEventListener('click', this.saveCanvasState.bind(this));
+    }
+
+    // Кнопка загрузки состояния холста
+    const loadCanvasButton = document.getElementById('btn-load-canvas');
+    if (loadCanvasButton) {
+      loadCanvasButton.addEventListener('click', this.loadCanvasState.bind(this));
     }
   }
 
@@ -330,8 +346,8 @@ export class DiagramController {
       const dx = e.clientX - this.canvasState.dragStartClientPos.x;
       const dy = e.clientY - this.canvasState.dragStartClientPos.y;
 
-      this.canvasState.position.x += dx / this.canvasState.scale;
-      this.canvasState.position.y += dy / this.canvasState.scale;
+      this.canvasState.position.x -= dx / this.canvasState.scale;
+      this.canvasState.position.y -= dy / this.canvasState.scale;
 
       this.canvasState.dragStartClientPos = { x: e.clientX, y: e.clientY };
 
@@ -488,8 +504,8 @@ export class DiagramController {
 
     } else {
       // Панорамирование при прокрутке колесиком
-      this.canvasState.position.x -= e.deltaX / this.canvasState.scale;
-      this.canvasState.position.y -= e.deltaY / this.canvasState.scale;
+      this.canvasState.position.x += e.deltaX / this.canvasState.scale;
+      this.canvasState.position.y += e.deltaY / this.canvasState.scale;
 
       this.updateCanvasTransform();
     }
@@ -570,10 +586,18 @@ export class DiagramController {
    */
   updateCanvasTransform() {
     const canvas = document.getElementById('canvas');
+    const container = document.getElementById('canvas-container');
+
+    // Устанавливаем css переменные для смещения фона
+    container.style.setProperty('--bg-offset-x', `${-this.canvasState.position.x * this.canvasState.scale}px`);
+    container.style.setProperty('--bg-offset-y', `${-this.canvasState.position.y * this.canvasState.scale}px`);
+
     canvas.style.transform = `translate(${-this.canvasState.position.x * this.canvasState.scale}px, ${-this.canvasState.position.y * this.canvasState.scale}px) scale(${this.canvasState.scale})`;
 
-    // Обновляем рендеринг после изменения трансформации
-    this.view.render();
+    // Обновляем представление
+    if (this.view) {
+      this.view.render();
+    }
   }
 
   /**
@@ -1048,7 +1072,7 @@ export class DiagramController {
     // Сначала удаляем все существующие направляющие
     document.querySelectorAll('.alignment-guide').forEach(guide => guide.remove());
 
-    // Отрисовываем новые направляющие
+    // Рисуем новые направляющие
     guides.forEach(guide => {
       const guideElement = document.createElement('div');
       guideElement.className = `alignment-guide ${guide.type}`;
@@ -1081,7 +1105,7 @@ export class DiagramController {
       button.classList.toggle('active', this.view.virtualizationEnabled);
     }
 
-    // При выключении виртуализации отрисовываем все элементы
+    // При выключении виртуализации рисуем все элементы
     if (!this.view.virtualizationEnabled) {
       this.view.render();
     }
@@ -1107,5 +1131,41 @@ export class DiagramController {
       `Направляющие ${this.guidesState.snapEnabled ? 'включены' : 'выключены'}`,
       'info'
     );
+  }
+
+  /**
+   * Сохранение состояния холста (позиция и масштаб) в localStorage
+   */
+  saveCanvasState() {
+    const canvasState = {
+      position: this.canvasState.position,
+      scale: this.canvasState.scale
+    };
+    try {
+      localStorage.setItem('canvas_state', JSON.stringify(canvasState));
+      this.showNotification('Состояние холста сохранено', 'success');
+    } catch (e) {
+      console.error('Ошибка сохранения состояния холста', e);
+      this.showNotification('Ошибка сохранения состояния холста', 'error');
+    }
+  }
+
+  /**
+   * Загрузка состояния холста (позиция и масштаб) из localStorage
+   */
+  loadCanvasState() {
+    try {
+      const savedState = localStorage.getItem('canvas_state');
+      if (savedState) {
+        const { position, scale } = JSON.parse(savedState);
+        this.canvasState.position = position || CONSTANTS.CANVAS.DEFAULT_POSITION;
+        this.canvasState.scale = scale || CONSTANTS.CANVAS.DEFAULT_SCALE;
+        this.updateCanvasTransform();
+        this.showNotification('Состояние холста загружено', 'success');
+      }
+    } catch (e) {
+      console.error('Ошибка загрузки состояния холста', e);
+      this.showNotification('Ошибка загрузки состояния холста', 'error');
+    }
   }
 }
