@@ -717,6 +717,106 @@ textarea.form-control {
   line-height: 1.4;
 }
 
+/* Мини-карта */
+.minimap-container {
+  position: absolute;
+  right: 16px;
+  bottom: 80px;
+  width: 220px;
+  height: 160px;
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-medium);
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  z-index: 50;
+  transition: opacity var(--transition-normal);
+  opacity: 0.7;
+}
+
+.minimap-container:hover {
+  opacity: 1;
+}
+
+.minimap-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 8px;
+  background-color: var(--bg-tertiary);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.minimap-title {
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.minimap-content {
+  position: relative;
+  width: 100%;
+  height: calc(100% - 28px);
+  overflow: hidden;
+}
+
+.minimap-canvas {
+  position: absolute;
+  transform-origin: 0 0;
+  background-color: var(--bg-primary);
+  background-image: 
+    linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+  background-size: 4px 4px;
+}
+
+.minimap-node {
+  position: absolute;
+  background-color: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: 2px;
+}
+
+.minimap-node.selected {
+  border-color: var(--accent-primary);
+  background-color: rgba(74, 107, 252, 0.2);
+}
+
+.minimap-viewport {
+  position: absolute;
+  border: 2px solid var(--accent-primary);
+  background-color: rgba(74, 107, 252, 0.1);
+  cursor: move;
+}
+
+.minimap-toggle {
+  position: absolute;
+  bottom: 75px;
+  right: 16px;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background-color: var(--accent-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  cursor: pointer;
+  z-index: 51;
+  border: none;
+  outline: none;
+  opacity: 0.7;
+  transition: opacity var(--transition-normal);
+}
+
+.minimap-toggle:hover {
+  opacity: 1;
+}
+
+.minimap-container.collapsed {
+  display: none;
+}
+
 /* Анимация для всех интерактивных элементов */
 @keyframes pulse {
   0% {
@@ -842,4 +942,191 @@ textarea.form-control {
 .alignment-guide.horizontal {
   height: 1px;
   background-color: var(--accent-primary);
+}
+
+/* Адаптивный дизайн - медиа-запросы */
+@media (max-width: 768px) {
+  /* Адаптация боковой панели */
+  .sidebar {
+    width: 100%;
+    position: absolute;
+    z-index: 100;
+    transform: translateX(-100%);
+    transition: transform var(--transition-normal);
+  }
+  
+  .sidebar.mobile-visible {
+    transform: translateX(0);
+  }
+  
+  /* Мобильная кнопка для боковой панели */
+  .mobile-sidebar-toggle {
+    display: flex !important;
+  }
+  
+  /* Адаптация заголовка */
+  .app-header {
+    flex-wrap: wrap;
+    padding: 0 8px;
+  }
+  
+  .breadcrumb {
+    display: none;
+  }
+  
+  /* Адаптация кнопок действий */
+  .app-header .actions {
+    margin-left: 8px;
+  }
+  
+  .btn-text {
+    display: none;
+  }
+  
+  /* Адаптация панели свойств */
+  .properties-panel {
+    width: 100%;
+    position: absolute;
+    bottom: 0;
+    transform: translateY(100%);
+    max-height: 80vh;
+    overflow-y: auto;
+  }
+  
+  .properties-panel.visible {
+    transform: translateY(0);
+  }
+  
+  /* Компактные кнопки */
+  .btn {
+    padding: 0 12px;
+  }
+
+  /* Скрытие мини-карты на маленьких экранах */
+  .minimap-container {
+    display: none;
+  }
+  
+  /* Компактная панель инструментов */
+  .toolbar-container {
+    flex-direction: column;
+    right: 8px;
+    bottom: 8px;
+  }
+  
+  /* Оптимизация для элементов узла */
+  .node {
+    min-width: 160px;
+  }
+}
+
+/* Адаптация для средних экранов (планшеты) */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .sidebar {
+    width: 220px;
+  }
+  
+  .properties-panel {
+    width: 280px;
+  }
+  
+  .minimap-container {
+    width: 180px;
+    height: 120px;
+  }
+}
+
+/* Улучшенные интерактивные элементы для тачскринов */
+@media (pointer: coarse) {
+  /* Увеличенные точки взаимодействия для касания */
+  .node-port {
+    width: 20px;
+    height: 20px;
+  }
+  
+  .btn-icon {
+    min-width: 44px;
+    min-height: 44px;
+  }
+  
+  .sidebar-item {
+    padding: 12px 16px;
+  }
+  
+  /* Дополнительное пространство для касаний */
+  .node-header .actions button {
+    margin: 0 4px;
+  }
+  
+  /* Увеличенные интервалы в панели инструментов */
+  .toolbar-group {
+    padding: 6px;
+  }
+  
+  .toolbar-button {
+    margin: 4px;
+  }
+  
+  /* Больше пространства между элементами формы */
+  .form-group {
+    margin-bottom: 20px;
+  }
+  
+  /* Увеличиваем размер поля ввода текста */
+  .form-control {
+    height: 44px;
+    font-size: 16px; /* Предотвращает масштабирование iOS при фокусе */
+    padding: 10px 14px;
+  }
+  
+  textarea.form-control {
+    min-height: 120px;
+  }
+}
+
+/* Вспомогательные классы для адаптивного дизайна */
+.d-none-mobile {
+  display: flex;
+}
+
+@media (max-width: 768px) {
+  .d-none-mobile {
+    display: none;
+  }
+}
+
+/* Класс для мобильной кнопки вызова боковой панели */
+.mobile-sidebar-toggle {
+  display: none;
+  width: 44px;
+  height: 44px;
+  position: fixed;
+  bottom: 20px;
+  left: 20px;
+  background-color: var(--accent-primary);
+  border-radius: 50%;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  z-index: 101;
+  border: none;
+  cursor: pointer;
+}
+
+/* Темная тема */
+@media (prefers-color-scheme: dark) {
+  :root {
+    /* Уже используем темную тему по умолчанию */
+  }
+}
+
+/* Светлая тема */
+.light-theme {
+  --bg-primary: #f5f5f5;
+  --bg-secondary: #ffffff;
+  --bg-tertiary: #f0f0f0;
+  --text-primary: #333333;
+  --text-secondary: #666666;
+  --border-color: #dddddd;
 }
