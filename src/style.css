@@ -826,3 +826,20 @@ textarea.form-control {
 .ml-auto {
   margin-left: auto;
 }
+
+/* Добавьте в style.css */
+.alignment-guide {
+  position: absolute;
+  z-index: 9999;
+  pointer-events: none;
+}
+
+.alignment-guide.vertical {
+  width: 1px;
+  background-color: var(--accent-primary);
+}
+
+.alignment-guide.horizontal {
+  height: 1px;
+  background-color: var(--accent-primary);
+}
